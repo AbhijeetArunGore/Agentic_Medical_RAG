@@ -1,0 +1,22 @@
+CENTRAL HOSPITAL - CLINICAL REPORT
+    CONFIDENTIAL - PATIENT: JOHN DOE (ID: PAT-2026-X88)
+    
+    DATE: 2026-05-04
+    
+    CHIEF COMPLAINT:
+    Patient presents with persistent bilateral ankle edema and fatigue.
+    
+    PAST MEDICAL HISTORY:
+    - Type 2 Diabetes Mellitus (Diagnosed 2018)
+    - Hypertension (Grade II)
+    - HISTORY OF BILATERAL RENAL ARTERY STENOSIS (Reported by patient from 2021 records).
+    
+    CURRENT MEDICATIONS:
+    - Metformin 1000mg BID
+    - Amlodipine 5mg OD
+    
+    LABORATORY TRENDS:
+    Nov 2025: Creatinine 0.9 mg/dL
+    Feb 2026: Creatinine 1.1 mg/dL
+    May 2026: Creatinine 1.4 mg/dL (CRITICAL INCREASE)
+    HbA1c: 7.2%
