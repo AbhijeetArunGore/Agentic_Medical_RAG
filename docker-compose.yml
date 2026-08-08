@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentic_medical_rag_api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - VECTOR_DB_PATH=/app/vector_db
+    volumes:
+      - ./data:/app/data
+      - ./vector_db:/app/vector_db
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentic_medical_rag_dashboard
+    command: streamlit run app/dashboard.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - LOG_LEVEL=INFO
+      - VECTOR_DB_PATH=/app/vector_db
+    volumes:
+      - ./data:/app/data
+      - ./vector_db:/app/vector_db
+    depends_on:
+      - api
+    restart: unless-stopped
