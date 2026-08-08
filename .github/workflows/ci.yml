@@ -9,6 +9,8 @@ on:
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -23,14 +25,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+          pip install -e .
 
       - name: Run Black Code Format Check
         run: |
-          black --check app tests main.py
+          black --check app tests main.py data
 
       - name: Run Flake8 Linting
         run: |
-          flake8 app tests --count --max-complexity=10 --max-line-length=120 --extend-ignore=E402,W293,E501 --statistics
+          flake8 app tests main.py --count --max-complexity=10 --max-line-length=120 --extend-ignore=E402,W293,E501 --statistics
 
       - name: Run Pytest Test Suite
         run: |

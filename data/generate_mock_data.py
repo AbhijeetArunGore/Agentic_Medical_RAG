@@ -20,10 +20,34 @@ def generate_mock_patient():
     patient_id = "PAT-2026-X88"
 
     labs = [
-        {"date": "2025-11-15", "test": "Creatinine", "value": 0.9, "unit": "mg/dL", "status": "Normal"},
-        {"date": "2026-02-10", "test": "Creatinine", "value": 1.1, "unit": "mg/dL", "status": "Borderline"},
-        {"date": "2026-05-01", "test": "Creatinine", "value": 1.4, "unit": "mg/dL", "status": "High"},
-        {"date": "2026-05-01", "test": "HbA1c", "value": 7.2, "unit": "%", "status": "Diabetic Range"},
+        {
+            "date": "2025-11-15",
+            "test": "Creatinine",
+            "value": 0.9,
+            "unit": "mg/dL",
+            "status": "Normal",
+        },
+        {
+            "date": "2026-02-10",
+            "test": "Creatinine",
+            "value": 1.1,
+            "unit": "mg/dL",
+            "status": "Borderline",
+        },
+        {
+            "date": "2026-05-01",
+            "test": "Creatinine",
+            "value": 1.4,
+            "unit": "mg/dL",
+            "status": "High",
+        },
+        {
+            "date": "2026-05-01",
+            "test": "HbA1c",
+            "value": 7.2,
+            "unit": "%",
+            "status": "Diabetic Range",
+        },
     ]
 
     notes = [
