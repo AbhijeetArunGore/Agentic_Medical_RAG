@@ -24,7 +24,12 @@ This directory contains automated, reproducible benchmarking harnesses to measur
 python benchmarks/run_benchmark.py --iterations 50
 ```
 
-### 2. Distributed Load Testing with Locust
+### 2. Live Server TCP Loopback Benchmark (Automated Test of 1,325 Requests)
+```bash
+python benchmarks/run_live_server_benchmark.py
+```
+
+### 3. Distributed Load Testing with Locust
 Start the server in one terminal:
 ```bash
 python main.py --server

@@ -90,7 +90,7 @@ def main():
 
     # Initialize shared vector store & seed
     vm = VectorStoreManager()
-    vm.seed_initial_knowledge_base()
+    vm.seed_initial_knowledge_base(force_reseed=True)
 
     # 1. Baseline: Dense Vector Retrieval
     print("Evaluating Baseline: Dense Cosine Vector Retrieval (Top K=5)...")
@@ -115,15 +115,30 @@ def main():
     print(f"  Improved Hybrid completed in {hybrid_time:.1f}ms\n")
 
     # Print comparison table
-    print("=" * 80)
-    print(f"{'Metric':<25} | {'Baseline (Dense)':<20} | {'Improved (Hybrid)':<20} | {'Delta':<10}")
-    print("-" * 80)
-    for metric_key in ["precision@5", "recall@5", "hit_rate@5", "mrr", "map"]:
-        base_val = baseline_metrics.get(metric_key, 0.0)
-        hyb_val = hybrid_metrics.get(metric_key, 0.0)
+    print("=" * 95)
+    print(
+        f"{'Metric':<32} | {'Baseline (Dense)':<18} | {'Improved (Hybrid)':<18} | {'Delta':<10} | {'Relative'}"
+    )
+    print("-" * 95)
+    metric_keys = [
+        ("precision@5", "Precision@5"),
+        ("recall@5", "Recall@5"),
+        ("mrr", "MRR (Mean Reciprocal Rank)"),
+        ("map", "MAP (Mean Avg Precision)"),
+        ("in_scope_hit_rate@5", "In-Scope Hit Rate@5 (24 q)"),
+        ("oos_clean_abstention@5", "OOS Clean Abstention (8 q)"),
+        ("oos_leakage@5", "OOS Retrieval Leakage (8 q)"),
+        ("retrieval_decision_accuracy@5", "Retrieval Decision Acc (32 q)"),
+    ]
+    for key, label in metric_keys:
+        base_val = baseline_metrics.get(key, 0.0)
+        hyb_val = hybrid_metrics.get(key, 0.0)
         delta = hyb_val - base_val
-        print(f"{metric_key:<25} | {base_val:<20.4f} | {hyb_val:<20.4f} | {delta:+.4f}")
-    print("=" * 80 + "\n")
+        rel_pct = (delta / base_val * 100.0) if base_val > 0 else 0.0
+        print(
+            f"{label:<32} | {base_val:<18.4f} | {hyb_val:<18.4f} | {delta:+10.4f} | {rel_pct:+6.2f}%"
+        )
+    print("=" * 95 + "\n")
 
     # Build report artifact
     report_data = {

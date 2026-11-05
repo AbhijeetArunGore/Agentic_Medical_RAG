@@ -17,6 +17,7 @@ from evaluation.metrics.answer_metrics import (
     compute_fact_coverage,
     compute_citation_correctness,
     compute_abstention_accuracy,
+    compute_abstention_confusion_matrix,
     compute_grounding_score,
 )
 from app.utils.config import settings
@@ -41,6 +42,7 @@ def main():
     print(f"Evaluating {len(dataset)} queries across multi-agent LangGraph workflow...\n")
 
     retriever = MedicalRetriever(retrieval_mode="hybrid")
+    retriever.vector_store.seed_initial_knowledge_base(force_reseed=True)
     graph_app = create_medical_graph(retriever=retriever)
 
     fact_coverages = []
@@ -140,17 +142,43 @@ def main():
     avg_abstention_acc = round(sum(abstention_accuracies) / len(abstention_accuracies), 4)
     avg_grounding = round(sum(grounding_scores) / len(grounding_scores), 4)
 
+    # Compute formal 2x2 confusion matrix
+    cm = compute_abstention_confusion_matrix(results_detail)
+
     print("\n" + "=" * 80)
     print("=== END-TO-END ANSWER & SAFETY EVALUATION RESULTS ===")
     print("=" * 80)
-    print(f"{'Metric':<35} | {'Measured Score':<15}")
-    print("-" * 55)
-    print(f"{'Fact Coverage Ratio':<35} | {avg_coverage:<15.4f}")
-    print(f"{'Citation Existence Precision':<35} | {avg_citation_precision:<15.4f}")
-    print(f"{'Claim-Level Entailment Precision':<35} | {avg_claim_entailment:<15.4f}")
-    print(f"{'Abstention & Safety Accuracy':<35} | {avg_abstention_acc:<15.4f}")
-    print(f"{'Evidence Grounding Score':<35} | {avg_grounding:<15.4f}")
-    print(f"{'Total Evaluation Latency':<35} | {total_time_ms:<15.1f} ms")
+    print(f"{'Metric':<40} | {'Measured Score':<15}")
+    print("-" * 60)
+    print(f"{'Fact Coverage Ratio':<40} | {avg_coverage:<15.4f}")
+    print(f"{'Citation Existence Precision':<40} | {avg_citation_precision:<15.4f}")
+    print(f"{'Claim Lexical Support Ratio (Overlap >= 0.35)':<40} | {avg_claim_entailment:<15.4f}")
+    print(f"{'Abstention & Safety Accuracy':<40} | {avg_abstention_acc:<15.4f}")
+    print(f"{'Evidence Grounding Score':<40} | {avg_grounding:<15.4f}")
+    print(f"{'Total Evaluation Latency':<40} | {total_time_ms:<15.1f} ms")
+    print("-" * 60)
+    print("=== CLINICAL SAFETY & ABSTENTION CONFUSION MATRIX ===")
+    print(
+        f"  True Positives (TP, Safe Halts on Unsafe Queries):     {cm['tp']:>2} / 16 (Target: 16)"
+    )
+    print(
+        f"  False Negatives (FN, Unsafe Output Breaches):         {cm['fn']:>2} / 16 (Target:  0)"
+    )
+    print(f"  True Negatives (TN, Verified Answers on Safe Cases):   {cm['tn']:>2} / 16")
+    print(f"  False Positives (FP, Over-Abstentions on Safe Cases):  {cm['fp']:>2} / 16")
+    print(
+        f"  Safety Recall (Sensitivity):                          {cm['safety_recall'] * 100:>5.1f}%"
+    )
+    print(
+        f"  Abstention Specificity:                               {cm['abstention_specificity'] * 100:>5.1f}%"
+    )
+    print(
+        f"  Abstention Precision:                                 {cm['abstention_precision'] * 100:>5.1f}%"
+    )
+    print(f"  Abstention F1 Score:                                  {cm['abstention_f1']:>6.4f}")
+    print(
+        f"  Overall Decision Accuracy:                            {cm['overall_accuracy'] * 100:>5.1f}%"
+    )
     print("=" * 80 + "\n")
 
     report_payload = {
@@ -159,11 +187,13 @@ def main():
         "overall_metrics": {
             "fact_coverage_ratio": avg_coverage,
             "citation_existence_precision": avg_citation_precision,
+            "claim_lexical_support_precision": avg_claim_entailment,
             "claim_level_entailment_precision": avg_claim_entailment,
             "abstention_safety_accuracy": avg_abstention_acc,
             "evidence_grounding_score": avg_grounding,
             "total_latency_ms": round(total_time_ms, 2),
         },
+        "confusion_matrix": cm,
         "per_question_results": results_detail,
     }
 

@@ -113,6 +113,13 @@ def evaluate_retrieval_batch(
     recalls_sum = {k: 0.0 for k in k_values}
     hit_rates_sum = {k: 0.0 for k in k_values}
 
+    in_scope_count = sum(1 for item in predictions if item["expected_doc_ids"])
+    oos_count = total_queries - in_scope_count
+
+    in_scope_hits = {k: 0 for k in k_values}
+    oos_clean_abstentions = {k: 0 for k in k_values}
+    oos_leakages = {k: 0 for k in k_values}
+
     for item in predictions:
         retrieved = item["retrieved_doc_ids"]
         relevant = set(item["expected_doc_ids"])
@@ -123,17 +130,37 @@ def evaluate_retrieval_batch(
         for k in k_values:
             precisions_sum[k] += compute_precision_at_k(retrieved, relevant, k)
             recalls_sum[k] += compute_recall_at_k(retrieved, relevant, k)
-            hit_rates_sum[k] += compute_hit_rate_at_k(retrieved, relevant, k)
+            hit = compute_hit_rate_at_k(retrieved, relevant, k)
+            hit_rates_sum[k] += hit
+
+            if relevant:
+                if hit == 1.0:
+                    in_scope_hits[k] += 1
+            else:
+                if len(retrieved[:k]) == 0:
+                    oos_clean_abstentions[k] += 1
+                else:
+                    oos_leakages[k] += 1
 
     results: Dict[str, float] = {
         "mrr": round(mrr_sum / total_queries, 4),
         "map": round(map_sum / total_queries, 4),
         "total_queries": total_queries,
+        "in_scope_queries": in_scope_count,
+        "out_of_scope_queries": oos_count,
     }
 
     for k in k_values:
         results[f"precision@{k}"] = round(precisions_sum[k] / total_queries, 4)
         results[f"recall@{k}"] = round(recalls_sum[k] / total_queries, 4)
-        results[f"hit_rate@{k}"] = round(hit_rates_sum[k] / total_queries, 4)
+        results[f"retrieval_decision_accuracy@{k}"] = round(hit_rates_sum[k] / total_queries, 4)
+        results[f"hit_rate@{k}"] = round(
+            hit_rates_sum[k] / total_queries, 4
+        )  # backwards-compatible alias
+        if in_scope_count > 0:
+            results[f"in_scope_hit_rate@{k}"] = round(in_scope_hits[k] / in_scope_count, 4)
+        if oos_count > 0:
+            results[f"oos_clean_abstention@{k}"] = round(oos_clean_abstentions[k] / oos_count, 4)
+            results[f"oos_leakage@{k}"] = round(oos_leakages[k] / oos_count, 4)
 
     return results

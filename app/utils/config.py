@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     # Runtime & Mode
     ENVIRONMENT: str = "development"
     MOCK_LLM: bool = True
+    MOCK_EMBEDDINGS: bool = False
     LOG_LEVEL: str = "INFO"
 
     # API Keys & Cloud Models

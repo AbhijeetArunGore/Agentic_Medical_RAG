@@ -79,24 +79,30 @@ class AgentState(TypedDict):
 
 ---
 
-## 4. Retrieval Architecture: Hybrid Dense + Lexical Fusion
+## 4. Retrieval Architecture: Weighted Hybrid Score Fusion (Dense + BM25)
 
 ```mermaid
 flowchart LR
     Q[Clinical Query] --> Dense[Dense Vector Search\nSentenceTransformers]
     Q --> Lexical[Lexical BM25 Search\nOkapi BM25 Token Ranker]
 
-    Dense -->|Cosine Similarity Ranks| RRF[Reciprocal Rank Fusion\nRRF k=60]
-    Lexical -->|BM25 Robertson IDF Ranks| RRF
+    Dense -->|Dense Cosine Similarity S_dense| Fusion[Weighted Score Fusion\n0.60 * S_dense + 0.40 * S_bm25]
+    Lexical -->|Normalized BM25 Score S_bm25| Fusion
 
-    RRF --> Filter{Similarity Threshold\nThreshold >= 0.35}
+    Fusion --> Filter{Similarity Threshold\nThreshold >= 0.22}
     Filter -->|Retained Chunks| Output[Retrieved Chunks with Provenance]
 ```
 
 ### Fusion Algorithm
-Reciprocal Rank Fusion (RRF) scores each document $d$:
-$$RRF\_Score(d) = \sum_{m \in \{dense, bm25\}} \frac{w_m}{k + \text{rank}_m(d)}$$
-where $k = 60$, $w_{dense} = 0.6$, and $w_{bm25} = 0.4$.
+Weighted Linear Score Fusion scores each candidate document chunk $d$:
+$$S_{\text{hybrid}}(d) = w_{\text{dense}} \cdot S_{\text{dense}}(d) + w_{\text{bm25}} \cdot S_{\text{bm25}}(d)$$
+
+where:
+- $w_{\text{dense}} = 0.60$ (Dense weight in `app/utils/config.py`)
+- $w_{\text{bm25}} = 0.40$ (BM25 weight in `app/utils/config.py`)
+- $S_{\text{dense}}(d) \in [0.0, 1.0]$ represents the unit-normalized cosine similarity from ChromaDB.
+- $S_{\text{bm25}}(d) \in [0.0, 1.0]$ represents the Robertson IDF-weighted query term coverage normalized by top candidate BM25 score.
+- Candidates with $S_{\text{hybrid}}(d) < \tau$ ($\tau = 0.22$) are filtered out, enabling strict zero-evidence abstention.
 
 ---
 

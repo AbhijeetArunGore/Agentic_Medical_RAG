@@ -104,6 +104,12 @@ class RetrievedChunk(BaseModel):
     metadata: Dict[str, Any] = {}
 
 
+class IncompatibleEmbeddingSpaceError(RuntimeError):
+    """Raised when active embedding model does not match persisted vector collection metadata."""
+
+    pass
+
+
 class VectorStoreManager:
     """Manages persistent ChromaDB vector storage with safe lifecycle handling."""
 
@@ -112,19 +118,87 @@ class VectorStoreManager:
         persist_directory: Optional[Path] = None,
         collection_name: Optional[str] = None,
         embedding_function: Optional[MedicalEmbeddingFunction] = None,
+        force_reseed: bool = False,
+        force_recreate: Optional[bool] = None,
     ):
         self.persist_directory = Path(persist_directory or settings.VECTOR_DB_DIR)
         self.persist_directory.mkdir(parents=True, exist_ok=True)
         self.collection_name = collection_name or settings.COLLECTION_NAME
         self.embedding_function = embedding_function or MedicalEmbeddingFunction()
+        should_reseed = force_reseed or (force_recreate is True)
 
         logger.info(f"Initializing ChromaDB client at: {self.persist_directory}")
         self.client = chromadb.PersistentClient(path=str(self.persist_directory))
-        self.collection = self.client.get_or_create_collection(
-            name=self.collection_name,
-            embedding_function=self.embedding_function,
-            metadata={"hnsw:space": "cosine"},
-        )
+
+        active_model = self.embedding_function.model_identifier
+        active_mode = "mock" if self.embedding_function.is_mock else "neural"
+        target_metadata = {
+            "hnsw:space": "cosine",
+            "embedding_model": active_model,
+            "embedding_mode": active_mode,
+            "embedding_dim": 384,
+        }
+
+        if should_reseed:
+            try:
+                self.client.delete_collection(name=self.collection_name)
+                logger.info(
+                    f"Deleted existing collection '{self.collection_name}' on force_reseed."
+                )
+            except Exception:
+                pass
+            self.collection = self.client.create_collection(
+                name=self.collection_name,
+                embedding_function=self.embedding_function,
+                metadata=target_metadata,
+            )
+            return
+
+        # Check existing collection compatibility
+        try:
+            # First fetch raw collection to inspect metadata without triggering Chroma internal EF conflict
+            existing_col = self.client.get_collection(name=self.collection_name)
+            meta = existing_col.metadata or {}
+            stored_model = meta.get("embedding_model")
+            stored_mode = meta.get("embedding_mode")
+
+            if existing_col.count() > 0:
+                if not stored_model:
+                    raise IncompatibleEmbeddingSpaceError(
+                        f"Persisted ChromaDB collection '{self.collection_name}' contains "
+                        f"{existing_col.count()} documents but lacks embedding provenance metadata "
+                        f"('embedding_model'). Operating against an unversioned legacy index risks "
+                        f"coordinate space corruption. Reseed explicitly via force_reseed=True or "
+                        f"'python main.py --setup-db'."
+                    )
+                if stored_model != active_model:
+                    raise IncompatibleEmbeddingSpaceError(
+                        f"Persisted ChromaDB collection '{self.collection_name}' was indexed using "
+                        f"embedding_model='{stored_model}' (mode='{stored_mode}'), but active configuration is "
+                        f"'{active_model}' (mode='{active_mode}'). Querying across mismatched embedding coordinate "
+                        f"spaces produces corrupt cosine distances. Reseed explicitly via force_reseed=True or "
+                        f"'python main.py --setup-db'."
+                    )
+            # Re-bind active embedding function
+            self.collection = self.client.get_collection(
+                name=self.collection_name,
+                embedding_function=self.embedding_function,
+            )
+        except IncompatibleEmbeddingSpaceError:
+            raise
+        except ValueError as e:
+            # ChromaDB internal embedding function configuration conflict
+            raise IncompatibleEmbeddingSpaceError(
+                f"Persisted ChromaDB collection '{self.collection_name}' has an incompatible "
+                f"embedding function configuration ({e}). Reseed explicitly via force_reseed=True or "
+                f"'python main.py --setup-db'."
+            ) from e
+        except Exception:
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                embedding_function=self.embedding_function,
+                metadata=target_metadata,
+            )
 
     def count(self) -> int:
         """Returns the number of indexed records in the collection."""
@@ -164,10 +238,36 @@ class VectorStoreManager:
         logger.info(f"Indexed {len(new_chunks)} new chunks into '{self.collection_name}'.")
         return len(new_chunks)
 
-    def seed_initial_knowledge_base(self, guidelines: Optional[List[Dict[str, Any]]] = None) -> int:
-        """Seeds default clinical guidelines if not already present."""
+    def seed_initial_knowledge_base(
+        self,
+        guidelines: Optional[List[Dict[str, Any]]] = None,
+        force_reseed: bool = False,
+    ) -> int:
+        """Seeds default clinical guidelines if not already present or if force_reseed=True."""
         data_to_seed = guidelines or DEFAULT_GUIDELINES
         ids = [g["id"] for g in data_to_seed]
+
+        active_model = self.embedding_function.model_identifier
+        active_mode = "mock" if self.embedding_function.is_mock else "neural"
+        target_metadata = {
+            "hnsw:space": "cosine",
+            "embedding_model": active_model,
+            "embedding_mode": active_mode,
+            "embedding_dim": 384,
+        }
+
+        if force_reseed:
+            try:
+                self.client.delete_collection(name=self.collection_name)
+                logger.info(f"Deleted collection '{self.collection_name}' for clean reseed.")
+            except Exception as e:
+                logger.info(f"Collection deletion during force_reseed: {e}")
+
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                embedding_function=self.embedding_function,
+                metadata=target_metadata,
+            )
 
         existing = self.collection.get(ids=ids)
         existing_ids = set(existing.get("ids", []))
@@ -183,7 +283,7 @@ class VectorStoreManager:
 
         self.collection.add(documents=documents, metadatas=metadatas, ids=add_ids)
         logger.info(
-            f"Seeded {len(items_to_add)} documents into collection '{self.collection_name}'."
+            f"Seeded {len(items_to_add)} documents into collection '{self.collection_name}' with model '{active_model}'."
         )
         return self.collection.count()
 

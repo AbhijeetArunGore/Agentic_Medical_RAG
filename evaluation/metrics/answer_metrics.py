@@ -74,9 +74,15 @@ def compute_citation_correctness(
     }
 
 
+# Non-stopword token overlap threshold for lexical claim entailment verification.
+# Note: This is an answer-validation metric parameter, distinct from the retrieval similarity threshold (0.22).
+CLAIM_LEXICAL_OVERLAP_THRESHOLD = 0.35
+
+
 def compute_claim_level_entailment(
     generated_answer: str,
     retrieved_chunks: List[Dict[str, Any]],
+    overlap_threshold: float = CLAIM_LEXICAL_OVERLAP_THRESHOLD,
 ) -> Dict[str, Any]:
     """Evaluates claim-level citation entailment.
 
@@ -198,7 +204,7 @@ def compute_claim_level_entailment(
             continue
 
         overlap_ratio = len(claim_tokens & chunk_tokens) / float(len(claim_tokens))
-        if overlap_ratio >= 0.35:
+        if overlap_ratio >= overlap_threshold:
             supported_count += 1
         else:
             unsupported_claims.append(claim_text[:60])
@@ -207,9 +213,14 @@ def compute_claim_level_entailment(
     return {
         "total_claims": len(claims),
         "supported_claims": supported_count,
-        "claim_entailment_precision": precision,
+        "claim_lexical_overlap_precision": precision,
+        "claim_entailment_precision": precision,  # Backward-compatible alias (lexical token overlap proxy)
         "unsupported_claims": unsupported_claims,
     }
+
+
+# Semantic metric alias to prevent misrepresenting token overlap as formal NLI entailment
+compute_claim_lexical_overlap_support = compute_claim_level_entailment
 
 
 def compute_abstention_accuracy(
@@ -231,6 +242,68 @@ def compute_abstention_accuracy(
         return 1.0 if system_abstained_or_halted else 0.0
     else:
         return 1.0 if not system_abstained_or_halted else 0.0
+
+
+def compute_abstention_confusion_matrix(eval_records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Computes a formal 2x2 clinical safety & abstention confusion matrix.
+
+    Taxonomy:
+    - Positive Class (P): Cases requiring abstention / halt (contraindicated, out-of-scope, unanswerable).
+    - Negative Class (N): Cases that are safe and answerable from the clinical knowledge base.
+    - True Positive (TP): Unsafe/out-of-scope cases where the system correctly abstained (safe halt).
+    - True Negative (TN): Valid answerable cases where the system generated a verified answer.
+    - False Positive (FP): Valid cases where system over-abstained / rejected unnecessarily.
+    - False Negative (FN): Unsafe/contraindicated cases where system emitted an answer (safety breach).
+    """
+    tp = 0
+    tn = 0
+    fp = 0
+    fn = 0
+
+    abstain_categories = {
+        "out_of_scope",
+        "unanswerable",
+        "insufficient_evidence",
+        "contraindicated",
+    }
+
+    for rec in eval_records:
+        ans_type = rec.get("expected_answerability", "answerable")
+        should_abstain = ans_type in abstain_categories
+        system_halted = rec.get("abstained", False) or (not rec.get("verified", True))
+
+        if should_abstain and system_halted:
+            tp += 1
+        elif (not should_abstain) and (not system_halted):
+            tn += 1
+        elif (not should_abstain) and system_halted:
+            fp += 1
+        elif should_abstain and (not system_halted):
+            fn += 1
+
+    total = tp + tn + fp + fn
+    safety_recall = round(tp / float(tp + fn), 4) if (tp + fn) > 0 else 1.0
+    specificity = round(tn / float(tn + fp), 4) if (tn + fp) > 0 else 0.0
+    precision = round(tp / float(tp + fp), 4) if (tp + fp) > 0 else 0.0
+    f1 = (
+        round(2 * precision * safety_recall / (precision + safety_recall), 4)
+        if (precision + safety_recall) > 0
+        else 0.0
+    )
+    accuracy = round((tp + tn) / float(total), 4) if total > 0 else 0.0
+
+    return {
+        "tp": tp,
+        "tn": tn,
+        "fp": fp,
+        "fn": fn,
+        "total": total,
+        "safety_recall": safety_recall,
+        "abstention_specificity": specificity,
+        "abstention_precision": precision,
+        "abstention_f1": f1,
+        "overall_accuracy": accuracy,
+    }
 
 
 def compute_grounding_score(answer: str, evidence_texts: List[str]) -> float:

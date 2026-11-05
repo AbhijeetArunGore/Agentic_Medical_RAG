@@ -70,18 +70,37 @@ class MedicalEmbeddingFunction(EmbeddingFunction[Documents]):
         self._st_model = None
         self._initialization_attempted = False
 
+    @property
+    def is_mock(self) -> bool:
+        """Indicates whether this embedding function operates in deterministic mock mode."""
+        if self.force_mock or settings.MOCK_EMBEDDINGS:
+            return True
+        model = self._get_model()
+        return model is None
+
+    @property
+    def model_identifier(self) -> str:
+        """Returns stable identifier string for the active embedding model."""
+        if self.is_mock:
+            return "mock-crc32-384d"
+        return self.model_name
+
     def _get_model(self):
         import os
 
-        # Fast path for offline mode, testing, or mock execution
-        if self.force_mock or settings.MOCK_LLM or bool(os.environ.get("PYTEST_CURRENT_TEST")):
+        # Fast path for forced mock or explicitly configured mock embeddings
+        if self.force_mock or settings.MOCK_EMBEDDINGS:
             return None
 
         if not self._initialization_attempted:
             self._initialization_attempted = True
             try:
+                import sys
+
+                sys.modules.setdefault("tensorflow", None)
                 os.environ.setdefault("USE_TF", "0")
                 os.environ.setdefault("USE_TORCH", "1")
+                os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
                 os.environ.setdefault("HF_HUB_OFFLINE", "1")
                 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
                 from sentence_transformers import SentenceTransformer

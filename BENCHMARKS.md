@@ -13,8 +13,10 @@ Measured using real HTTP requests transmitted over TCP loopback against an activ
 - **Server**: Uvicorn 0.32.1 (ASGI HTTP/1.1)
 - **Client**: Concurrent Multi-Threaded HTTP Worker Pool
 - **Network Stack**: True TCP socket connections over `http://127.0.0.1:8765`
-- **Execution Mode**: Deterministic Local Mode (SentenceTransformers / Deterministic semantic fallback)
+- **Execution Mode**: Local Cached Mode (SentenceTransformers local neural embeddings / local deterministic synthesis)
 - **Test Volume**: 1,325 total requests (including warm-up phases)
+
+> **Measurement Scope Note**: These throughput and latency numbers reflect local ASGI microservice overhead, hybrid vector retrieval, and fast local synthesis over local TCP loopback. They are not intended to represent throughput with remote third-party cloud LLM APIs (e.g. OpenAI or Anthropic endpoints), which typically introduce 500–2,000 ms of network and generative model latency per call.
 
 | Endpoint / Operation | Total Requests | Concurrency | Throughput (RPS) | Mean Latency | Median (p50) | p90 Latency | p95 Latency | p99 Latency | Error Rate |
 |---|---|---|---|---|---|---|---|---|---|

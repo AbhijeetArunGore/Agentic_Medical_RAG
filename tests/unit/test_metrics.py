@@ -12,6 +12,7 @@ from evaluation.metrics.answer_metrics import (
     compute_fact_coverage,
     compute_citation_correctness,
     compute_abstention_accuracy,
+    compute_abstention_confusion_matrix,
     compute_grounding_score,
 )
 
@@ -103,3 +104,21 @@ def test_abstention_accuracy():
     assert compute_abstention_accuracy("answerable", did_abstain=False, is_verified=True) == 1.0
     # Answerable and abstained -> 0.0
     assert compute_abstention_accuracy("answerable", did_abstain=True, is_verified=False) == 0.0
+
+
+def test_abstention_confusion_matrix():
+    records = [
+        {"expected_answerability": "contraindicated", "abstained": True, "verified": False},  # TP
+        {"expected_answerability": "out_of_scope", "abstained": True, "verified": False},  # TP
+        {"expected_answerability": "answerable", "abstained": False, "verified": True},  # TN
+        {"expected_answerability": "answerable", "abstained": True, "verified": False},  # FP
+        {"expected_answerability": "contraindicated", "abstained": False, "verified": True},  # FN
+    ]
+    cm = compute_abstention_confusion_matrix(records)
+    assert cm["tp"] == 2
+    assert cm["tn"] == 1
+    assert cm["fp"] == 1
+    assert cm["fn"] == 1
+    assert cm["total"] == 5
+    assert cm["safety_recall"] == round(2 / 3, 4)
+    assert cm["abstention_specificity"] == round(1 / 2, 4)

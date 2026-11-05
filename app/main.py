@@ -28,7 +28,7 @@ def setup_knowledge_base():
     """Seed vector database with clinical guidelines."""
     logger.info("Initializing vector store knowledge base...")
     vm = VectorStoreManager()
-    count = vm.seed_initial_knowledge_base()
+    count = vm.seed_initial_knowledge_base(force_reseed=True)
     logger.info(f"Knowledge base seeded with {count} guidelines.")
 
 
