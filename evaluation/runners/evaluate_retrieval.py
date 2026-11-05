@@ -57,9 +57,7 @@ def run_configuration_evaluation(
         expected_doc_ids = item["expected_doc_ids"]
 
         # Run retrieval
-        res = retriever.retrieve_with_diagnostics(
-            query=query, top_k=top_k, strategy=strategy_name
-        )
+        res = retriever.retrieve_with_diagnostics(query=query, top_k=top_k, strategy=strategy_name)
 
         # Extract document IDs from retrieved chunks
         retrieved_doc_ids = [c.document_id for c in res.chunks]
@@ -161,7 +159,16 @@ def main():
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Metric", "Baseline_Dense", "Improved_Hybrid", "Delta"])
-        for metric_key in ["precision@1", "precision@3", "precision@5", "recall@3", "recall@5", "hit_rate@5", "mrr", "map"]:
+        for metric_key in [
+            "precision@1",
+            "precision@3",
+            "precision@5",
+            "recall@3",
+            "recall@5",
+            "hit_rate@5",
+            "mrr",
+            "map",
+        ]:
             base_val = baseline_metrics.get(metric_key, 0.0)
             hyb_val = hybrid_metrics.get(metric_key, 0.0)
             writer.writerow([metric_key, base_val, hyb_val, round(hyb_val - base_val, 4)])

@@ -79,7 +79,13 @@ def test_scribe_report_and_citations():
         "clinical_trends": ["Creatinine: Normal"],
         "draft_briefing": "Prescribe standard protective therapy.",
         "retrieved_chunks": [
-            {"chunk_id": "ada_c1", "source": "ADA 2026", "page_number": 14, "section": "CKD", "score": 0.95}
+            {
+                "chunk_id": "ada_c1",
+                "source": "ADA 2026",
+                "page_number": 14,
+                "section": "CKD",
+                "score": 0.95,
+            }
         ],
         "verified": True,
         "abstained": False,

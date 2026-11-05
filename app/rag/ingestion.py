@@ -38,6 +38,7 @@ class IngestionSummary(BaseModel):
 
 class DocumentIngestionError(Exception):
     """Base exception for document ingestion failures."""
+
     pass
 
 
@@ -103,7 +104,9 @@ class DocumentIngestor:
                     if extracted.strip():
                         pages.append((page_num, extracted))
                 if not pages:
-                    raise DocumentIngestionError(f"No extractable text found in PDF: {file_path.name}")
+                    raise DocumentIngestionError(
+                        f"No extractable text found in PDF: {file_path.name}"
+                    )
             except Exception as e:
                 logger.error(f"Failed to parse PDF {file_path}: {e}")
                 raise DocumentIngestionError(f"PDF extraction error: {str(e)}")
@@ -132,7 +135,9 @@ class DocumentIngestor:
         if doc_hash in self._ingested_hashes:
             existing_doc_id = self._ingested_hashes[doc_hash]
             duration = (time.time() - start_time) * 1000
-            logger.info(f"Duplicate document detected ({file_path.name}); maps to {existing_doc_id}")
+            logger.info(
+                f"Duplicate document detected ({file_path.name}); maps to {existing_doc_id}"
+            )
             summary = IngestionSummary(
                 document_id=existing_doc_id,
                 source_filename=file_path.name,

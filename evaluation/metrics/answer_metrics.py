@@ -93,7 +93,8 @@ def compute_claim_level_entailment(
     """
     # If system properly abstained or halted for safety, no ungrounded medical claims were produced
     if not generated_answer.strip() or any(
-        w in generated_answer.upper() for w in ["ABSTENTION TRIGGERED", "SAFETY HALT", "INSUFFICIENT EVIDENCE"]
+        w in generated_answer.upper()
+        for w in ["ABSTENTION TRIGGERED", "SAFETY HALT", "INSUFFICIENT EVIDENCE"]
     ):
         return {
             "total_claims": 0,
@@ -112,12 +113,19 @@ def compute_claim_level_entailment(
 
     for line in lines:
         # Skip citation bibliography section entries
-        if line.lower().startswith("- [") and ("source:" in line.lower() or "page:" in line.lower()):
+        if line.lower().startswith("- [") and (
+            "source:" in line.lower() or "page:" in line.lower()
+        ):
             continue
         if "mandatory evidence citations" in line.lower() or "disclaimer:" in line.lower():
             continue
 
-        if line.startswith("-") or line.startswith("*") or "recommend" in line.lower() or "contraindicated" in line.lower():
+        if (
+            line.startswith("-")
+            or line.startswith("*")
+            or "recommend" in line.lower()
+            or "contraindicated" in line.lower()
+        ):
             match = ref_pattern.search(line)
             if match:
                 cited_id = match.group(1).lower()
@@ -134,7 +142,9 @@ def compute_claim_level_entailment(
         total = 0
         unsupported = []
         for line in lines:
-            if len(line.split()) >= 6 and ("recommend" in line.lower() or "indicated" in line.lower() or "mg" in line.lower()):
+            if len(line.split()) >= 6 and (
+                "recommend" in line.lower() or "indicated" in line.lower() or "mg" in line.lower()
+            ):
                 total += 1
                 line_words = set(re.findall(r"\b[a-z]{3,}\b", line.lower()))
                 # Check overlap against any chunk
@@ -169,7 +179,18 @@ def compute_claim_level_entailment(
         chunk_tokens = set(re.findall(r"\b[a-z0-9]{3,}\b", chunk_text))
 
         # Stopwords exclusion
-        stopwords = {"the", "and", "for", "with", "that", "this", "from", "patient", "clinical", "guideline"}
+        stopwords = {
+            "the",
+            "and",
+            "for",
+            "with",
+            "that",
+            "this",
+            "from",
+            "patient",
+            "clinical",
+            "guideline",
+        }
         claim_tokens -= stopwords
 
         if not claim_tokens:

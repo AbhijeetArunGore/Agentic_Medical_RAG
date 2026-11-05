@@ -68,7 +68,10 @@ Strict Rules:
                 response = client.chat.completions.create(
                     model=self.model_name,
                     messages=[
-                        {"role": "system", "content": "You are a specialized clinical decision support assistant. You provide strictly grounded medical information citing primary evidence."},
+                        {
+                            "role": "system",
+                            "content": "You are a specialized clinical decision support assistant. You provide strictly grounded medical information citing primary evidence.",
+                        },
                         {"role": "user", "content": prompt},
                     ],
                     temperature=0.0,
@@ -76,7 +79,9 @@ Strict Rules:
                 )
                 return response.choices[0].message.content.strip()
             except Exception as e:
-                logger.warning(f"Cloud LLM invocation failed ({e}). Falling back to deterministic synthesis.")
+                logger.warning(
+                    f"Cloud LLM invocation failed ({e}). Falling back to deterministic synthesis."
+                )
 
         # Mode A: Deterministic Evidence-Extracting Synthesizer
         # Directly extracts clinical facts, therapeutic indications, targets, and contraindications

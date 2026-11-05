@@ -86,15 +86,26 @@ class SkepticAgent:
 
         # Check 3: Clinical Contraindication - ACE Inhibitors & Renal Artery Stenosis
         is_negated_stenosis = bool(
-            re.search(r"\b(no|denies|negative for|without|rule out)\s+([a-z\s]+)?stenosis\b", patient_history)
+            re.search(
+                r"\b(no|denies|negative for|without|rule out)\s+([a-z\s]+)?stenosis\b",
+                patient_history,
+            )
         )
         has_stenosis = (
-            ("renal artery stenosis" in patient_history or "stenosis" in patient_history)
-            and not is_negated_stenosis
-        )
+            "renal artery stenosis" in patient_history or "stenosis" in patient_history
+        ) and not is_negated_stenosis
         proposes_ace = any(
             term in briefing
-            for term in ["ace inhibitor", "ace inhibitors", "arb", "arbs", "lisinopril", "losartan", "enalapril", "standard therapy"]
+            for term in [
+                "ace inhibitor",
+                "ace inhibitors",
+                "arb",
+                "arbs",
+                "lisinopril",
+                "losartan",
+                "enalapril",
+                "standard therapy",
+            ]
         )
 
         if has_stenosis and proposes_ace:
@@ -109,7 +120,9 @@ class SkepticAgent:
 
         # Check 4: Metformin in Severe Renal Impairment
         proposes_metformin = "metformin" in briefing
-        has_severe_renal_failure = "egfr < 30" in patient_history or "creatinine: 2." in patient_history
+        has_severe_renal_failure = (
+            "egfr < 30" in patient_history or "creatinine: 2." in patient_history
+        )
         if proposes_metformin and has_severe_renal_failure:
             verified = False
             contraindication_msg = (
@@ -121,8 +134,12 @@ class SkepticAgent:
             logger.warning(f"Clinical Safety Flag: {contraindication_msg}")
 
         # Check 5: NSAID Nephrotoxicity
-        proposes_nsaid = any(term in briefing for term in ["nsaid", "ibuprofen", "naproxen", "ketorolac"])
-        has_kidney_stress = "creatinine: 1.4" in patient_history or "acute renal stress" in patient_history
+        proposes_nsaid = any(
+            term in briefing for term in ["nsaid", "ibuprofen", "naproxen", "ketorolac"]
+        )
+        has_kidney_stress = (
+            "creatinine: 1.4" in patient_history or "acute renal stress" in patient_history
+        )
         if proposes_nsaid and has_kidney_stress:
             verified = False
             contraindication_msg = (
@@ -135,7 +152,9 @@ class SkepticAgent:
 
         # Formulate reasoning trace
         if verified:
-            reasoning = "Clinical safety audit PASSED. No contraindications detected; evidence is grounded."
+            reasoning = (
+                "Clinical safety audit PASSED. No contraindications detected; evidence is grounded."
+            )
         elif abstained:
             reasoning = f"Clinical safety audit initiated ABSTENTION: {abstention_reason}"
         else:

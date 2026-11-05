@@ -34,9 +34,7 @@ patient_id = st.sidebar.text_input("Patient ID", "PAT-2026-X88")
 clinical_query = st.sidebar.text_area(
     "Clinical Query / Focus Area", "Treatment for rising creatinine and uncontrolled HbA1c"
 )
-retrieval_strategy = st.sidebar.selectbox(
-    "Retrieval Strategy", ["hybrid", "dense", "bm25"]
-)
+retrieval_strategy = st.sidebar.selectbox("Retrieval Strategy", ["hybrid", "dense", "bm25"])
 
 if st.sidebar.button("Run Agentic CDS Pipeline", type="primary"):
     with st.status("🚀 Orchestrating Multi-Agent Workflow...", expanded=True) as status:
@@ -78,7 +76,11 @@ if st.sidebar.button("Run Agentic CDS Pipeline", type="primary"):
                 time.sleep(0.1)
 
         total_latency_ms = round((time.time() - t0) * 1000, 2)
-        status.update(label=f"✅ Diagnostic Workflow Complete ({total_latency_ms}ms)!", state="complete", expanded=False)
+        status.update(
+            label=f"✅ Diagnostic Workflow Complete ({total_latency_ms}ms)!",
+            state="complete",
+            expanded=False,
+        )
 
     # 4. Display Workflow Results
     final_state = workflow_app.get_state(config).values
@@ -124,7 +126,9 @@ if st.sidebar.button("Run Agentic CDS Pipeline", type="primary"):
     m3.metric("Chunks Evaluated", len(final_state.get("retrieved_chunks", [])))
     m4.metric("Verification Status", "VERIFIED" if final_state.get("verified") else "HALTED")
 
-    st.caption("ℹ️ To inspect offline RAG benchmark evaluation figures (Precision@K, Recall@K, MRR), run `python -m evaluation.runners.evaluate_retrieval`.")
+    st.caption(
+        "ℹ️ To inspect offline RAG benchmark evaluation figures (Precision@K, Recall@K, MRR), run `python -m evaluation.runners.evaluate_retrieval`."
+    )
 
 else:
     st.info("👈 Select patient parameters in the sidebar and click 'Run Agentic CDS Pipeline'.")

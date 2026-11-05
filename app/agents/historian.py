@@ -33,7 +33,9 @@ class HistorianAgent:
         patient_history = state.get("patient_history")
         patient_id = state.get("patient_id", "PAT-2026-X88")
 
-        if patient_history is None or (patient_id == "PAT-2026-X88" and not patient_history.strip()):
+        if patient_history is None or (
+            patient_id == "PAT-2026-X88" and not patient_history.strip()
+        ):
             record_file = settings.DATA_DIR / "raw_extracted_pdf.txt"
             loaded_text = safe_read_file(record_file)
             patient_history = loaded_text if loaded_text.strip() else ""
@@ -44,7 +46,9 @@ class HistorianAgent:
         trends: List[str] = []
 
         # Creatinine trend detection
-        creat_matches = re.findall(r"Creatinine[\s:]+([0-9\.]+)\s*(?:mg/dL)?", patient_history, re.IGNORECASE)
+        creat_matches = re.findall(
+            r"Creatinine[\s:]+([0-9\.]+)\s*(?:mg/dL)?", patient_history, re.IGNORECASE
+        )
         if creat_matches:
             latest_creat = float(creat_matches[-1])
             if latest_creat >= 1.3:
@@ -72,12 +76,16 @@ class HistorianAgent:
 
         # History of bilateral renal artery stenosis (with negation detection)
         is_negated_stenosis = bool(
-            re.search(r"\b(no|denies|negative for|without|rule out)\s+([a-z\s]+)?stenosis\b", patient_history, re.IGNORECASE)
+            re.search(
+                r"\b(no|denies|negative for|without|rule out)\s+([a-z\s]+)?stenosis\b",
+                patient_history,
+                re.IGNORECASE,
+            )
         )
         has_stenosis = (
-            ("RENAL ARTERY STENOSIS" in patient_history.upper() or "STENOSIS" in patient_history.upper())
-            and not is_negated_stenosis
-        )
+            "RENAL ARTERY STENOSIS" in patient_history.upper()
+            or "STENOSIS" in patient_history.upper()
+        ) and not is_negated_stenosis
         if has_stenosis:
             trends.append("Documented History: Bilateral Renal Artery Stenosis")
 

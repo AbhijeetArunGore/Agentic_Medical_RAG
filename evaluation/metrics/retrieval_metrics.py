@@ -12,7 +12,9 @@ Architectural Mechanics:
 from typing import List, Set, Dict, Any
 
 
-def compute_precision_at_k(retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int) -> float:
+def compute_precision_at_k(
+    retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int
+) -> float:
     """Calculate Precision@K: (relevant items in top K) / K.
 
     If relevant_doc_ids is empty:
@@ -46,7 +48,9 @@ def compute_recall_at_k(retrieved_doc_ids: List[str], relevant_doc_ids: Set[str]
     return relevant_retrieved / float(len(relevant_doc_ids))
 
 
-def compute_hit_rate_at_k(retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int) -> float:
+def compute_hit_rate_at_k(
+    retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int
+) -> float:
     """Calculate Hit Rate@K: 1.0 if at least one relevant document is in top K, else 0.0."""
     if not relevant_doc_ids:
         return 1.0 if len(retrieved_doc_ids[:k]) == 0 else 0.0
@@ -73,7 +77,9 @@ def compute_reciprocal_rank(retrieved_doc_ids: List[str], relevant_doc_ids: Set[
     return 0.0
 
 
-def compute_average_precision(retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int = 10) -> float:
+def compute_average_precision(
+    retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int = 10
+) -> float:
     """Calculate Average Precision (AP@K) across retrieved documents."""
     if not relevant_doc_ids:
         return 1.0 if len(retrieved_doc_ids[:k]) == 0 else 0.0

@@ -136,7 +136,9 @@ class EvaluationRequest(BaseModel):
     )
     patient_history: Optional[str] = Field(
         default=None,
-        json_schema_extra={"example": "Type 2 diabetes, creatinine 1.4 mg/dL, renal artery stenosis."},
+        json_schema_extra={
+            "example": "Type 2 diabetes, creatinine 1.4 mg/dL, renal artery stenosis."
+        },
     )
 
 

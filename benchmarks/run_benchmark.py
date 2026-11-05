@@ -168,10 +168,14 @@ def main():
         print(f"Benchmarking {name}...")
         summary = benchmark_endpoint(name=name, call_fn=fn, iterations=args.iterations)
         summaries.append(summary)
-        print(f"  -> p50: {summary['p50_ms']}ms | p95: {summary['p95_ms']}ms | Throughput: {summary['throughput_rps']} RPS | Errors: {summary['error_rate_pct']}%")
+        print(
+            f"  -> p50: {summary['p50_ms']}ms | p95: {summary['p95_ms']}ms | Throughput: {summary['throughput_rps']} RPS | Errors: {summary['error_rate_pct']}%"
+        )
 
     print("\n" + "=" * 95)
-    print(f"{'Operation':<42} | {'Throughput':<12} | {'Mean (ms)':<10} | {'p50 (ms)':<10} | {'p95 (ms)':<10} | {'Error %':<8}")
+    print(
+        f"{'Operation':<42} | {'Throughput':<12} | {'Mean (ms)':<10} | {'p50 (ms)':<10} | {'p95 (ms)':<10} | {'Error %':<8}"
+    )
     print("-" * 95)
     for s in summaries:
         print(
@@ -196,19 +200,33 @@ def main():
     csv_path = REPORTS_DIR / "api_benchmark_summary.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["Operation", "Total_Requests", "Throughput_RPS", "Mean_ms", "p50_ms", "p90_ms", "p95_ms", "p99_ms", "Error_Rate_Pct"])
+        writer.writerow(
+            [
+                "Operation",
+                "Total_Requests",
+                "Throughput_RPS",
+                "Mean_ms",
+                "p50_ms",
+                "p90_ms",
+                "p95_ms",
+                "p99_ms",
+                "Error_Rate_Pct",
+            ]
+        )
         for s in summaries:
-            writer.writerow([
-                s["operation"],
-                s["total_requests"],
-                s["throughput_rps"],
-                s["mean_latency_ms"],
-                s["p50_ms"],
-                s["p90_ms"],
-                s["p95_ms"],
-                s["p99_ms"],
-                s["error_rate_pct"],
-            ])
+            writer.writerow(
+                [
+                    s["operation"],
+                    s["total_requests"],
+                    s["throughput_rps"],
+                    s["mean_latency_ms"],
+                    s["p50_ms"],
+                    s["p90_ms"],
+                    s["p95_ms"],
+                    s["p99_ms"],
+                    s["error_rate_pct"],
+                ]
+            )
     print(f"Saved CSV benchmark summary to: {csv_path}\n")
 
 

@@ -43,7 +43,9 @@ def main():
                 with urllib.request.urlopen(f"{server_url}/health", timeout=1.0) as resp:
                     if resp.status == 200:
                         is_ready = True
-                        print(f"Uvicorn server ready on {server_url} after {(attempt + 1) * 0.5:.1f}s.")
+                        print(
+                            f"Uvicorn server ready on {server_url} after {(attempt + 1) * 0.5:.1f}s."
+                        )
                         break
             except Exception:
                 continue

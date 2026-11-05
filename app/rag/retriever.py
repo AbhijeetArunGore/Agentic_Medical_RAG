@@ -121,7 +121,9 @@ class BM25SearchIndex:
                 if term in tf_map:
                     tf = tf_map[term]
                     idf = self.idf.get(term, 0.5)
-                    denom = tf + self.k1 * (1.0 - self.b + self.b * (doc_len / max(1.0, self.avg_doc_len)))
+                    denom = tf + self.k1 * (
+                        1.0 - self.b + self.b * (doc_len / max(1.0, self.avg_doc_len))
+                    )
                     num = tf * (self.k1 + 1.0)
                     doc_score += idf * (num / denom)
 
@@ -150,7 +152,9 @@ class MedicalRetriever:
         self.vector_store = vector_store or VectorStoreManager()
         self.retrieval_mode = retrieval_mode or settings.RETRIEVAL_MODE
         self.similarity_threshold = (
-            similarity_threshold if similarity_threshold is not None else settings.SIMILARITY_THRESHOLD
+            similarity_threshold
+            if similarity_threshold is not None
+            else settings.SIMILARITY_THRESHOLD
         )
         self.bm25_index = BM25SearchIndex()
         self._bm25_initialized = False
@@ -198,7 +202,9 @@ class MedicalRetriever:
         """Executes retrieval with full telemetry and metadata provenance."""
         start_time = time.time()
         mode = strategy or self.retrieval_mode
-        threshold = similarity_threshold if similarity_threshold is not None else self.similarity_threshold
+        threshold = (
+            similarity_threshold if similarity_threshold is not None else self.similarity_threshold
+        )
 
         logger.info(f"Retrieving for query: '{query}' [Strategy: {mode}, TopK: {top_k}]")
 

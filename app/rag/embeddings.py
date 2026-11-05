@@ -112,7 +112,9 @@ class MedicalEmbeddingFunction(EmbeddingFunction[Documents]):
         """Convenience method for LangChain compatibility."""
         return self(texts)
 
-    def embed_query(self, input: Union[str, List[str], None] = None, text: Optional[str] = None) -> Union[List[List[float]], List[float]]:
+    def embed_query(
+        self, input: Union[str, List[str], None] = None, text: Optional[str] = None
+    ) -> Union[List[List[float]], List[float]]:
         """Embedding method compatible with both ChromaDB (input=...) and LangChain (text=...)."""
         target = input if input is not None else text
         if target is None:

@@ -70,7 +70,9 @@ def run_concurrent_benchmark(
     """Executes concurrent load test with warm-up and percentile tracking."""
     print(f"\n--- Running Benchmark: {name} ---")
     print(f"  Target: {method} {url}")
-    print(f"  Total Requests: {total_requests} | Concurrency: {concurrency} | Warm-up: {warmup_requests}")
+    print(
+        f"  Total Requests: {total_requests} | Concurrency: {concurrency} | Warm-up: {warmup_requests}"
+    )
 
     # 1. Warm-up phase
     if warmup_requests > 0:
@@ -139,7 +141,9 @@ def run_concurrent_benchmark(
         "status_code_distribution": status_codes,
     }
 
-    print(f"  -> RPS: {rps} | p50: {p50}ms | p90: {p90}ms | p95: {p95}ms | p99: {p99}ms | Error: {error_rate}%")
+    print(
+        f"  -> RPS: {rps} | p50: {p50}ms | p90: {p90}ms | p95: {p95}ms | p99: {p99}ms | Error: {error_rate}%"
+    )
     return result
 
 
@@ -147,8 +151,12 @@ def main():
     parser = argparse.ArgumentParser(description="Real HTTP Benchmark for Agentic Medical RAG")
     parser.add_argument("--host", default="127.0.0.1", help="Target host")
     parser.add_argument("--port", type=int, default=8000, help="Target port")
-    parser.add_argument("--health-requests", type=int, default=1000, help="Requests for /health benchmark")
-    parser.add_argument("--query-requests", type=int, default=100, help="Requests for /query benchmark")
+    parser.add_argument(
+        "--health-requests", type=int, default=1000, help="Requests for /health benchmark"
+    )
+    parser.add_argument(
+        "--query-requests", type=int, default=100, help="Requests for /query benchmark"
+    )
     parser.add_argument("--concurrency", type=int, default=5, help="Concurrent client threads")
     args = parser.parse_args()
 
@@ -229,7 +237,9 @@ def main():
 
     # Summary Report Table
     print("\n" + "=" * 105)
-    print(f"{'Operation / Endpoint':<40} | {'Throughput':<12} | {'Mean (ms)':<10} | {'p50 (ms)':<10} | {'p95 (ms)':<10} | {'p99 (ms)':<10} | {'Errors':<8}")
+    print(
+        f"{'Operation / Endpoint':<40} | {'Throughput':<12} | {'Mean (ms)':<10} | {'p50 (ms)':<10} | {'p95 (ms)':<10} | {'p99 (ms)':<10} | {'Errors':<8}"
+    )
     print("-" * 105)
     for b in benchmarks:
         print(

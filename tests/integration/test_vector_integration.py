@@ -16,7 +16,9 @@ def test_full_ingestion_and_retrieval_flow(tmp_path):
     assert vm.count() == 4
 
     retriever = MedicalRetriever(vector_store=vm, retrieval_mode="hybrid")
-    res = retriever.retrieve_with_diagnostics("bilateral renal artery stenosis contraindication", top_k=2)
+    res = retriever.retrieve_with_diagnostics(
+        "bilateral renal artery stenosis contraindication", top_k=2
+    )
 
     assert len(res.chunks) > 0
     assert res.diagnostics.strategy == "hybrid"

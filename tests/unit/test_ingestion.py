@@ -29,7 +29,9 @@ def test_ingest_empty_raw_text_raises_error():
 def test_ingest_text_file(tmp_path):
     """Verify text file ingestion and chunk generation."""
     sample_file = tmp_path / "sample_guideline.txt"
-    sample_file.write_text("Guideline A: ACE inhibitors. Guideline B: SGLT2 inhibitors.", encoding="utf-8")
+    sample_file.write_text(
+        "Guideline A: ACE inhibitors. Guideline B: SGLT2 inhibitors.", encoding="utf-8"
+    )
 
     ingestor = DocumentIngestor()
     summary, chunks = ingestor.process_file(sample_file)

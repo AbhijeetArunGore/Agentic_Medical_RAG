@@ -65,7 +65,17 @@ class ScribeAgent:
         # Step 2: Handle Abstention or Safety Failure
         if not verified or abstained:
             logger.warning("Scribe formatting clinical abstention / safety failure report.")
-            reason = abstention_reason or (contradictions[0] if contradictions else "Safety verification failed.")
+            reason = abstention_reason or (
+                contradictions[0] if contradictions else "Safety verification failed."
+            )
+
+            trends_block = "\n   - ".join(trends) if trends else "No trends detected"
+            contraindications_block = "\n   - ".join(contradictions) if contradictions else reason
+            evidence_block = (
+                "\n   - ".join(citation_strings)
+                if citation_strings
+                else "No external evidence met safety standards."
+            )
 
             final_report = f"""
 ================================================================================
@@ -75,10 +85,10 @@ STATUS: SAFETY HALT / ABSTENTION TRIGGERED
 ================================================================================
 
 1. DETECTED CLINICAL TRENDS & RISK FACTORS:
-   - {"\n   - ".join(trends) if trends else "No trends detected"}
+   - {trends_block}
 
 2. SAFETY WARNINGS & CONTRAINDICATIONS:
-   - {"\n   - ".join(contradictions) if contradictions else reason}
+   - {contraindications_block}
 
 3. PRIMARY CLINICAL REASON FOR ABSTENTION:
    {reason}
@@ -89,7 +99,7 @@ STATUS: SAFETY HALT / ABSTENTION TRIGGERED
    - Consider alternative nephrology-consulted therapeutic protocols.
 
 5. EVIDENCE CONSULTED:
-   - {"\n   - ".join(citation_strings) if citation_strings else "No external evidence met safety standards."}
+   - {evidence_block}
 
 ================================================================================
 {DISCLAIMER_TEXT}
@@ -105,6 +115,13 @@ STATUS: SAFETY HALT / ABSTENTION TRIGGERED
             }
 
         # Step 3: Compile Verified Clinical Briefing
+        verified_trends_block = "\n   - ".join(trends) if trends else "None detected"
+        verified_citations_block = (
+            "\n   - ".join(citation_strings)
+            if citation_strings
+            else "No external citations attached."
+        )
+
         final_report = f"""
 ================================================================================
 CLINICAL BRIEFING & DECISION SUPPORT REPORT
@@ -113,13 +130,13 @@ STATUS: VERIFIED & GROUNDED IN EVIDENCE
 ================================================================================
 
 1. DETECTED LABORATORY & CLINICAL TRENDS:
-   - {"\n   - ".join(trends) if trends else "None detected"}
+   - {verified_trends_block}
 
 2. EVIDENCE-GROUNDED TREATMENT RECOMMENDATIONS:
    {draft_briefing}
 
 3. MANDATORY EVIDENCE CITATIONS (VERIFIED):
-   - {"\n   - ".join(citation_strings) if citation_strings else "No external citations attached."}
+   - {verified_citations_block}
 
 4. SAFETY CLEARANCE STATUS:
    VERIFIED - Audited by Skeptic Agent. No contraindications or safety risks detected.

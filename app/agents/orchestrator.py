@@ -83,7 +83,9 @@ def create_medical_graph(
 
         # Allow full multi-agent pass (4 nodes) before halting
         if iter_count > (max_iters * 4):
-            logger.warning(f"Maximum graph step limit ({max_iters * 4}) exceeded. Routing to terminal END.")
+            logger.warning(
+                f"Maximum graph step limit ({max_iters * 4}) exceeded. Routing to terminal END."
+            )
             return END
 
         # Route to Scribe for report synthesis (either verified briefing or structured safety notice)

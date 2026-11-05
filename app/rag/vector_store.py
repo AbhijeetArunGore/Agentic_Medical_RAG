@@ -182,7 +182,9 @@ class VectorStoreManager:
         metadatas = [g.get("metadata", {}) for g in items_to_add]
 
         self.collection.add(documents=documents, metadatas=metadatas, ids=add_ids)
-        logger.info(f"Seeded {len(items_to_add)} documents into collection '{self.collection_name}'.")
+        logger.info(
+            f"Seeded {len(items_to_add)} documents into collection '{self.collection_name}'."
+        )
         return self.collection.count()
 
     def query(
@@ -213,7 +215,11 @@ class VectorStoreManager:
         metadatas = results.get("metadatas", [[]])[0]
         distances = results.get("distances", [[]])[0]
 
-        threshold = similarity_threshold if similarity_threshold is not None else settings.SIMILARITY_THRESHOLD
+        threshold = (
+            similarity_threshold
+            if similarity_threshold is not None
+            else settings.SIMILARITY_THRESHOLD
+        )
         chunks: List[RetrievedChunk] = []
 
         for chunk_id, doc_text, meta, dist in zip(ids, documents, metadatas, distances):
