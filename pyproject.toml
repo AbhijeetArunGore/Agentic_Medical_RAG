@@ -23,6 +23,11 @@ dependencies = [
     "python-dotenv>=1.0.0"
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["data*", "notebooks*", "evaluation*", "tests*", "benchmarks*", "vector_db*"]
+
 [tool.black]
 line-length = 100
 target-version = ['py310', 'py311']
