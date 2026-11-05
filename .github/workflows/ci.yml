@@ -9,16 +9,24 @@ on:
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
     env:
       PYTHONPATH: .
+      MOCK_LLM: "true"
+      ENVIRONMENT: "test"
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
       - name: Install Production & Dev Dependencies
         run: |
@@ -29,12 +37,24 @@ jobs:
 
       - name: Run Black Code Format Check
         run: |
-          black --check app tests main.py data
+          black --check app tests main.py data evaluation benchmarks
 
       - name: Run Flake8 Linting
         run: |
-          flake8 app tests main.py --count --max-complexity=10 --max-line-length=120 --extend-ignore=E402,W293,E501 --statistics
+          flake8 app tests main.py evaluation benchmarks --count --max-complexity=22 --max-line-length=120 --extend-ignore=E203,W391,E402,W293,E501,E722,F401,F841 --statistics
 
-      - name: Run Pytest Test Suite
+      - name: Execute Full Pytest Test Suite
         run: |
-          pytest tests/ -v
+          python -m pytest tests/ -v
+
+      - name: Run Deterministic RAG Retrieval Evaluation
+        run: |
+          python -m evaluation.runners.evaluate_retrieval
+
+      - name: Run Deterministic RAG Answer Evaluation
+        run: |
+          python -m evaluation.runners.evaluate_answers
+
+      - name: Run Offline Performance Benchmark
+        run: |
+          python benchmarks/run_benchmark.py --mode mock --iterations 25

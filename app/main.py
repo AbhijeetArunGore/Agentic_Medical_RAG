@@ -1,12 +1,12 @@
 """Main entry point for Agentic Medical RAG application.
 
-Supports running in CLI mode, starting the FastAPI server, or setting up the vector store.
+Supports running in CLI mode, starting the FastAPI server, setting up vector store, or ingesting files.
 """
 
 import sys
 from pathlib import Path
 
-# Ensure project root is in sys.path for standalone module execution
+# Ensure project root is in sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
@@ -17,6 +17,7 @@ import uuid
 
 from app.agents.orchestrator import create_medical_graph
 from app.rag.vector_store import VectorStoreManager
+from app.rag.ingestion import DocumentIngestor
 from app.utils.config import settings
 from app.utils.logger import get_logger
 
@@ -50,12 +51,19 @@ def run_cli_pipeline(patient_id: str = "PAT-2026-X88", query: str = None):
         "clinical_trends": [],
         "query": query or "Treatment for rising creatinine and high HbA1c",
         "retrieved_docs": [],
+        "retrieved_chunks": [],
         "draft_briefing": "",
         "reasoning": "Starting diagnostic flow.",
         "verified": False,
+        "abstained": False,
+        "abstention_reason": None,
         "contradictions": [],
+        "safety_flags": [],
         "final_report": "",
         "citations": [],
+        "validated_citations": [],
+        "iteration_count": 0,
+        "max_iterations": settings.MAX_AGENT_ITERATIONS,
     }
 
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
@@ -76,6 +84,23 @@ def run_cli_pipeline(patient_id: str = "PAT-2026-X88", query: str = None):
         print("=== PIPELINE TERMINATED: Safety Halt Flagged ===")
         print(f"Safety Warnings: {final_state.get('contradictions')}")
     print("=" * 80 + "\n")
+
+
+def ingest_file(file_path: str):
+    """Ingest a clinical text, markdown, json, or pdf document from CLI."""
+    p = Path(file_path)
+    if not p.exists():
+        print(f"Error: file not found: {file_path}")
+        sys.exit(1)
+
+    ingestor = DocumentIngestor()
+    summary, chunks = ingestor.process_file(p)
+    if chunks:
+        vm = VectorStoreManager()
+        vm.add_chunks(chunks)
+        print(f"Successfully ingested {len(chunks)} chunks into ChromaDB from {p.name}")
+    else:
+        print(f"Ingestion result: {summary.status}")
 
 
 def start_server():
@@ -102,6 +127,9 @@ def main():
         "--setup-db", action="store_true", help="Initialize and seed ChromaDB vector store"
     )
     parser.add_argument(
+        "--ingest", type=str, default=None, help="Path to document (pdf, txt, md, json) to ingest"
+    )
+    parser.add_argument(
         "--patient-id", type=str, default="PAT-2026-X88", help="Patient ID for CLI run"
     )
     parser.add_argument("--query", type=str, default=None, help="Custom query for CLI run")
@@ -110,6 +138,8 @@ def main():
 
     if args.setup_db:
         setup_knowledge_base()
+    elif args.ingest:
+        ingest_file(args.ingest)
     elif args.server:
         start_server()
     else:

@@ -1,0 +1,50 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 4 * * 1'  # Every Monday at 04:00 UTC
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check for Accidentally Committed Secrets
+        run: |
+          echo "Scanning for exposed private credentials and API keys..."
+          python -c "
+          import os, re, sys
+          pattern = re.compile(r'(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{20,}|Bearer\s+[a-zA-Z0-9\._\-]{30,})')
+          found = 0
+          for root, _, files in os.walk('.'):
+              if any(skip in root for skip in ['.git', '.venv', 'venv', '__pycache__']):
+                  continue
+              for f in files:
+                  if f in ['.env.example', 'security.yml']:
+                      continue
+                  p = os.path.join(root, f)
+                  try:
+                      with open(p, 'r', encoding='utf-8', errors='ignore') as fp:
+                          for line_num, line in enumerate(fp, 1):
+                              if pattern.search(line) and not 'your_' in line:
+                                  print(f'CRITICAL: Suspected secret pattern in {p}:{line_num}')
+                                  found += 1
+                  except Exception:
+                      pass
+          if found > 0:
+              sys.exit(1)
+          print('Secret scan completed: 0 credentials detected.')
+          "

@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 
-# Ensure project root is in sys.path for standalone module execution
+# Ensure project root is in sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
@@ -13,6 +13,8 @@ import time
 import streamlit as st
 
 from app.agents.orchestrator import create_medical_graph
+from app.rag.retriever import MedicalRetriever
+from app.utils.config import settings
 
 # Page Config
 st.set_page_config(
@@ -32,14 +34,16 @@ patient_id = st.sidebar.text_input("Patient ID", "PAT-2026-X88")
 clinical_query = st.sidebar.text_area(
     "Clinical Query / Focus Area", "Treatment for rising creatinine and uncontrolled HbA1c"
 )
-data_source = st.sidebar.selectbox(
-    "Data Source", ["Unstructured Clinical PDF", "FHIR JSON Feed", "Live EHR Endpoint"]
+retrieval_strategy = st.sidebar.selectbox(
+    "Retrieval Strategy", ["hybrid", "dense", "bm25"]
 )
 
 if st.sidebar.button("Run Agentic CDS Pipeline", type="primary"):
     with st.status("🚀 Orchestrating Multi-Agent Workflow...", expanded=True) as status:
-        # 1. Initialize Graph
-        workflow_app = create_medical_graph()
+        t0 = time.time()
+        # 1. Initialize Retriever & Graph
+        retriever = MedicalRetriever(retrieval_mode=retrieval_strategy)
+        workflow_app = create_medical_graph(retriever=retriever)
 
         # 2. Initial State Setup
         initial_state = {
@@ -48,12 +52,19 @@ if st.sidebar.button("Run Agentic CDS Pipeline", type="primary"):
             "clinical_trends": [],
             "query": clinical_query,
             "retrieved_docs": [],
+            "retrieved_chunks": [],
             "draft_briefing": "",
             "reasoning": "Initializing workflow...",
             "verified": False,
+            "abstained": False,
+            "abstention_reason": None,
             "contradictions": [],
+            "safety_flags": [],
             "final_report": "",
             "citations": [],
+            "validated_citations": [],
+            "iteration_count": 0,
+            "max_iterations": settings.MAX_AGENT_ITERATIONS,
         }
 
         config = {"configurable": {"thread_id": str(uuid.uuid4())}}
@@ -64,9 +75,10 @@ if st.sidebar.button("Run Agentic CDS Pipeline", type="primary"):
                 st.write(f"✅ Agent Node Completed: **{node_name.upper()}**")
                 if "reasoning" in state_update:
                     st.info(f"**Reasoning Trace:** {state_update['reasoning']}")
-                time.sleep(0.3)
+                time.sleep(0.1)
 
-        status.update(label="✅ Diagnostic Workflow Complete!", state="complete", expanded=False)
+        total_latency_ms = round((time.time() - t0) * 1000, 2)
+        status.update(label=f"✅ Diagnostic Workflow Complete ({total_latency_ms}ms)!", state="complete", expanded=False)
 
     # 4. Display Workflow Results
     final_state = workflow_app.get_state(config).values
@@ -84,29 +96,35 @@ if st.sidebar.button("Run Agentic CDS Pipeline", type="primary"):
 
         st.subheader("🛡️ Skeptic Safety Verification")
         if final_state.get("verified", False):
-            st.success("PASSED: No contraindications detected.")
+            st.success("PASSED: Evidence grounded and no contraindications detected.")
         else:
             contradictions = final_state.get("contradictions", [])
             st.error(
-                f"SAFETY HALT: {contradictions[0] if contradictions else 'Contraindication flagged.'}"
+                f"SAFETY HALT / CONTRAINDICATION: {contradictions[0] if contradictions else 'Contraindication flagged.'}"
             )
 
+        if final_state.get("citations"):
+            st.subheader("📚 Evidence Citations")
+            for c in final_state["citations"]:
+                st.markdown(f"- {c}")
+
     with col2:
-        st.subheader("📝 Verified Clinical Briefing")
+        st.subheader("📝 Clinical Report Output")
         if final_state.get("final_report"):
             st.code(final_state["final_report"], language="text")
         else:
-            st.warning(
-                "⚠️ **Briefing Generation Blocked.** The Skeptic Agent detected safety contraindications. Clinical review required."
-            )
+            st.warning("⚠️ No report compiled.")
 
-    # 5. System Metrics
+    # 5. Live Runtime Diagnostics (Honest Telemetry)
     st.markdown("---")
-    st.subheader("📈 System Performance Metrics")
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Faithfulness Score", "98.5%")
-    m2.metric("Med-Relevancy", "96.2%")
-    m3.metric("Hallucination Risk", "0.01%")
+    st.subheader("📈 Live Execution Telemetry")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Pipeline Latency", f"{total_latency_ms} ms")
+    m2.metric("Retrieval Strategy", retrieval_strategy.upper())
+    m3.metric("Chunks Evaluated", len(final_state.get("retrieved_chunks", [])))
+    m4.metric("Verification Status", "VERIFIED" if final_state.get("verified") else "HALTED")
+
+    st.caption("ℹ️ To inspect offline RAG benchmark evaluation figures (Precision@K, Recall@K, MRR), run `python -m evaluation.runners.evaluate_retrieval`.")
 
 else:
     st.info("👈 Select patient parameters in the sidebar and click 'Run Agentic CDS Pipeline'.")
