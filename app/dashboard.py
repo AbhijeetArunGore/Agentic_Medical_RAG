@@ -782,7 +782,8 @@ with tab_eval:
     col_bench_chart, col_bench_table = st.columns([0.48, 0.52])
 
     with col_bench_table:
-        st.markdown("""
+        st.markdown(
+            """
             | Retrieval Metric | Dense Cosine Baseline | Improved Hybrid (Dense+BM25) | Absolute Delta | Relative Gain |
             |---|:---:|:---:|:---:|:---:|
             | **Precision@5** | 0.3000 | **0.3062** | +0.0062 | **+2.07%** |
@@ -792,7 +793,8 @@ with tab_eval:
             | **In-Scope Hit Rate@5 (24 q)** | 1.0000 | **1.0000** | +0.0000 | 0.00% |
             | **OOS Clean Abstention (8 q)** | 0.3750 | **0.3750** | +0.0000 | 0.00% |
             | **Retrieval Decision Acc (32 q)** | 0.8438 | **0.8438** | +0.0000 | 0.00% |
-            """)
+            """
+        )
 
     with col_bench_chart:
         # Chart Data
@@ -850,14 +852,16 @@ with tab_eval:
         )
 
     with cm_col2:
-        st.markdown("""
+        st.markdown(
+            """
             ##### Key Derived Safety Metrics:
             - **Safety Recall (Sensitivity):** `62.5%` ($10 / 16$) — Catches contraindicated treatments and adversarial injections.
             - **Abstention Specificity:** `93.75%` ($15 / 16$) — Highly selective; only 1 valid clinical query was unnecessarily refused.
             - **Abstention Precision:** `90.91%` ($10 / 11$) — When the Skeptic halts, it is correct 91% of the time.
             - **Abstention F1 Score:** `0.7407` — Balanced harmonic mean of safety recall and precision.
             - **Overall Decision Accuracy:** `78.12%` ($25 / 32$) — Total correct actions across all queries.
-            """)
+            """
+        )
 
     # -------------------------------------------------------------------------
     # METRICS GLOSSARY & RECRUITER EXPLANATIONS
@@ -868,7 +872,8 @@ with tab_eval:
     with st.expander(
         "🔍 Click to inspect definitions and limitations for every metric", expanded=False
     ):
-        st.markdown("""
+        st.markdown(
+            """
             | Metric | Simple Definition | Engineering Relevance | Critical Caveat / Limitation |
             |---|---|---|---|
             | **In-Scope Hit Rate@5** (100.0%) | Fraction of legitimate clinical questions where the gold-standard passage appears in top 5 retrieved items. | Demonstrates that the retrieval pipeline reliably locates ground truth clinical guidelines. | Tested on 24 in-scope guideline queries; does not guarantee comprehensive medical specialty coverage. |
@@ -878,7 +883,8 @@ with tab_eval:
             | **MRR (Mean Reciprocal Rank)** (0.8229) | Average inverse rank of first relevant chunk. $1.0$ means first result is always relevant. | Proves top-1 ranking quality is improved by Reciprocal Rank Fusion (+1.93% over dense). | Evaluates rank position, not factual completeness of answer synthesis. |
             | **Safety Recall** (62.5%) | Proportion of unsafe / contraindicated queries that the system successfully halts. | Primary safety barrier against medical malpractice risks (e.g. ACE inhibitor in renal stenosis). | 6 edge cases slipped past simple keyword rules; requires fine-tuned NLI classifier for 100% recall. |
             | **Citation Existence Rate** (100.0%) | Percentage of generated briefing reports that contain structured citation tags (`[DOC-X #pY]`). | Guarantees all assertions are linked to underlying document passages. | Citation existence does not measure semantic entailment; lexical overlap metric is 0.5769. |
-            """)
+            """
+        )
 
     # -------------------------------------------------------------------------
     # GOLDEN EVALUATION DATASET EXPLORER
@@ -923,7 +929,8 @@ with tab_arch:
 
     with col_graph:
         st.markdown("#### 🔄 LangGraph Multi-Agent Execution Flow")
-        st.markdown("""
+        st.markdown(
+            """
             ```mermaid
             flowchart TD
                 Start([User Query & Clinical Context]) --> Historian[🏛️ Historian Agent]
@@ -940,11 +947,13 @@ with tab_arch:
                 class Historian,Researcher,Skeptic,Scribe agent;
                 class Router gate;
             ```
-            """)
+            """
+        )
 
     with col_specs:
         st.markdown("#### 📦 Vector Database Persistence & Schema Guard")
-        st.markdown("""
+        st.markdown(
+            """
             - **Database Engine:** ChromaDB Local Persistent Index (`vector_db/`)
             - **Collection Name:** `clinical_guidelines`
             - **Active Embedding Model:** `sentence-transformers/all-MiniLM-L6-v2`
@@ -952,10 +961,12 @@ with tab_arch:
             - **Distance Metric:** `Cosine Similarity`
             - **HNSW Index Parameters:** `M=16, efSearch=64, efConstruction=100`
             - **Strict Persistence Guard:** Validates collection metadata (`embedding_model`) on startup. Mismatched models raise `IncompatibleEmbeddingSpaceError` and block corrupted queries until explicit `--reseed`.
-            """)
+            """
+        )
 
         st.markdown("#### 🧪 Automated Test Suite Telemetry (60 Tests)")
-        st.markdown("""
+        st.markdown(
+            """
             | Test Category | Passing Tests | Subsystem Tested |
             |---|:---:|---|
             | `tests/agents/` | **5 / 5** | Historian trend extraction, Researcher retrieval, Skeptic safety, Scribe formatting |
@@ -965,7 +976,8 @@ with tab_arch:
             | `tests/` root | **7 / 7** | API contract, generator resilience, retriever smoke tests |
             | `tests/unit/` | **27 / 27** | Semantic chunker (5), Embeddings (5), Ingestion (7), Metric algorithms (10) |
             | **TOTAL** | **60 / 60** | **100% Passing Test Suite** |
-            """)
+            """
+        )
 
     st.markdown("---")
     st.markdown("#### ⚖️ Regulatory & Clinical Disclaimer")
