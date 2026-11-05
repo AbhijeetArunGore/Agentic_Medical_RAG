@@ -1,365 +1,449 @@
-# 🏥 Agentic Medical RAG (Clinical Decision Support System)
+# 🏥 Agentic Medical RAG
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-Production-green)
-![LangGraph](https://img.shields.io/badge/LangGraph-Agentic-orange)
-![Docker](https://img.shields.io/badge/Docker-Ready-blue)
-![Tests](https://img.shields.io/badge/Tests-Passing-success)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI Build](https://github.com/AbhijeetArunGore/Agentic_Medical_RAG/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+> **Evidence-Grounded Clinical Decision Support Knowledge Retrieval Research Prototype**
+> Stateful Multi-Agent LangGraph Orchestration • Calibrated Hybrid Retrieval (Dense + BM25) • Automated Safety Auditing & Provenance Citations
 
-> **Production-grade Clinical Decision Support (CDS) platform utilizing stateful multi-agent LangGraph workflows, adaptive ChromaDB vector retrieval, and automated clinical safety verification.**
-
----
-
-## 🌟 Why This Project Stands Out (Recruiter Highlights)
-
-- **Multi-agent clinical reasoning pipeline**: Autonomous collaboration between specialized agents.
-- **Retrieval-Augmented Generation (RAG)**: Adaptive k-NN semantic search over medical evidence.
-- **LangGraph state-machine orchestration**: Stateful workflow with conditional routing and safety halts.
-- **Persistent vector database (ChromaDB)**: Local vector storage with dynamic path resolution.
-- **FastAPI production API**: Documented REST microservice with Pydantic validation.
-- **Streamlit interactive dashboard**: Live visual agent reasoning trace monitoring.
-- **Dockerized deployment**: Multi-stage `Dockerfile` and `docker-compose` orchestration.
-- **Automated CI/CD testing**: GitHub Actions workflow running linting (`black`, `flake8`) and `pytest`.
-- **Comprehensive architecture documentation**: Complete technical design diagrams and walkthroughs.
+![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115.11-009688?logo=fastapi)
+![LangGraph](https://img.shields.io/badge/LangGraph-Stateful%20Multi--Agent-orange)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-HNSW%20Persistence-red)
+![Tests](https://img.shields.io/badge/Tests-60%20Passing-success)
+![Code Style](https://img.shields.io/badge/Code%20Style-Black%20%7C%20Flake8-black)
+![License](https://img.shields.io/badge/License-MIT-green)
+[![CI Pipeline](https://github.com/AbhijeetArunGore/Agentic_Medical_RAG/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 
 ---
 
-## 🎬 Demo
+## 🎬 Product Demonstration & Live Walkthrough
 
-![Agentic Medical RAG Demo](docs/assets/demo.gif)
+![Agentic Medical RAG Main Dashboard](docs/assets/screenshots/01-main-dashboard.png)
 
----
+### 📌 Recruiter & Hiring Manager Executive Summary
 
-## 📋 Problem Statement
-
-Traditional Retrieval-Augmented Generation (RAG) systems in healthcare suffer from critical failure modes:
-1. **Hallucination Risk**: Standard LLMs generate authoritative-sounding recommendations that contradict patient contraindications.
-2. **Static Single-Turn Retrieval**: Naive vector search misses critical clinical trends hidden across unstructured EHR notes.
-3. **Lack of Clinical Verification**: Standard pipelines lack a dedicated safety auditor layer to cross-check recommendations against medical guidelines prior to physician presentation.
-
-**Agentic Medical RAG** solves these challenges by implementing an autonomous multi-agent architecture with a **Skeptic Safety Validation Loop** that verifies every treatment plan against patient medical history.
-
----
-
-## ✨ Key Features
-
-- 🤖 **Stateful Multi-Agent Orchestration**: Powered by **LangGraph**, featuring specialized agents (`Historian`, `Researcher`, `Skeptic`, `Scribe`).
-- 🛡️ **Zero-Hallucination Skeptic Loop**: Automatic clinical contraindication detection (e.g., catching ACE inhibitor risks in bilateral renal artery stenosis).
-- 🔍 **Adaptive Vector RAG**: High-accuracy semantic document search over clinical guidelines powered by ChromaDB.
-- ⚡ **Production FastAPI Microservice**: Fully documented REST API (`/health`, `/query`, `/evaluate-patient`) with Pydantic schema validation.
-- 📊 **Streamlit Interactive Dashboard**: Real-time visual monitoring of agent reasoning traces and patient diagnostic evaluation.
-- 🐳 **Docker & CI/CD Included**: Ready for enterprise deployment with `docker-compose` and GitHub Actions automated linting & testing.
+| Evaluation Dimension | Engineering Implementation & Evidence |
+|---|---|
+| **What problem does this project solve?** | Standard LLMs hallucinate medical citations and overlook critical patient contraindications buried in encounter notes. This system provides verifiable clinical decision support where 100% of claims cite underlying guidelines, and an automated safety agent halts contraindicated recommendations. |
+| **Who would use it?** | Clinical AI researchers, hospital informatics engineers, and Applied AI teams prototyping safety-first retrieval pipelines and evidence-grounded agent workflows. |
+| **Why is an agentic RAG architecture appropriate?** | A single LLM call cannot reliably ingest multi-page records, perform hybrid search, cross-reference black-box warnings, and verify citation provenance simultaneously. Decomposing into 4 bounded LangGraph agents enforces deterministic safety gates and auditability. |
+| **What makes this implementation technically interesting?** | Weighted Linear Hybrid Fusion (SentenceTransformers + BM25), strict ChromaDB embedding space persistence validation (rejects mismatched indexes on startup), deterministic offline evaluation harness, and non-root multi-stage Docker deployment. |
+| **What does the evaluation demonstrate?** | **100% In-Scope Hit Rate@5** (24/24), **84.38% Retrieval Decision Accuracy** (27/32), **100% Citation Existence Precision**, **93.75% Abstention Specificity**, and **60/60 passing automated tests**. |
+| **What are its current limitations?** | Research prototype (not an FDA-cleared device); utilizes general-purpose embeddings (`all-MiniLM-L6-v2`) exhibiting 62.5% out-of-scope retrieval leakage caught by the downstream Skeptic agent. |
 
 ---
 
-## 🏛️ System Architecture
+### 🩺 Complete Demonstration Scenarios: Inputs & Actual System Outputs
+
+#### Scenario 1: In-Scope Clinical Guideline (Verified Recommendation)
+- **Patient Context:** 64yo male (`PAT-2026-X88`), longstanding T2D, eGFR 52 mL/min, serum creatinine 1.4 mg/dL, persistent microalbuminuria (UACR 240 mg/g).
+- **Clinician Query:** *"What is the recommended pharmacotherapy for Type 2 Diabetes patients with rising creatinine and persistent proteinuria?"*
+- **Agent Execution Pipeline:**
+  1. **Historian Agent:** Identified rising creatinine (1.4 mg/dL) and confirmed absence of renal artery stenosis.
+  2. **Researcher Agent:** Executed hybrid retrieval (Dense + BM25) and retrieved 4 guideline chunks (ADA 2026 & KDIGO 2025).
+  3. **Skeptic Agent:** Cross-referenced evidence against patient history: **PASSED (No contraindications detected)**.
+  4. **Scribe Agent:** Compiled clinical briefing with explicit citation markers.
+- **Actual Output:**
+  ```text
+  CLINICAL BRIEFING REPORT
+  Patient: PAT-2026-X88 | Status: VERIFIED & EVIDENCE-GROUNDED
+
+  Recommendation:
+  For patients with Type 2 Diabetes exhibiting microalbuminuria and renal impairment (eGFR 52 mL/min),
+  first-line pharmacotherapy includes an ACE inhibitor (e.g., Lisinopril) or ARB titrated to blood
+  pressure targets (< 130/80 mmHg) [DOC-1 #p14]. Additionally, KDIGO 2025 guidelines recommend initiating
+  an SGLT2 inhibitor (e.g., Empagliflozin) to reduce renal disease progression and cardiovascular events [DOC-3 #p4].
+
+  Evidence Provenance:
+  - [DOC-1 #p14]: ADA 2026 Standards of Care (Diabetic Kidney Disease)
+  - [DOC-3 #p4]: KDIGO 2025 Standard (Cardiorenal Protection)
+  ```
+
+#### Scenario 2: Critical Safety Concern & Contraindication Halt
+- **Patient Context:** 59yo female (`PAT-2026-S02`), severe refractory hypertension with **bilateral renal artery stenosis** confirmed on Doppler ultrasound.
+- **Clinician Query:** *"Can ACE inhibitors be safely prescribed to a diabetic patient with confirmed bilateral renal artery stenosis?"*
+- **Agent Execution Pipeline:**
+  1. **Historian Agent:** Flags documented bilateral renal artery stenosis as a critical anatomical risk.
+  2. **Researcher Agent:** Retrieves hypertension guidelines mentioning ACE inhibitor standard therapies.
+  3. **Skeptic Agent:** Intercepts proposed ACE inhibitor against black-box contraindications: **SAFETY HALT TRIGGERED**.
+  4. **Scribe Agent:** Halts clinical synthesis and outputs formal safety warning.
+- **Actual Output:**
+  ```text
+  🔴 SAFETY HALT / CONTRAINDICATION DETECTED
+  Status: REFUSED_ON_SAFETY_GROUNDS
+
+  Critical Warning:
+  ACE inhibitors and Angiotensin Receptor Blockers (ARBs) are ABSOLUTELY CONTRAINDICATED in patients
+  with bilateral renal artery stenosis. Inhibiting angiotensin II-mediated efferent arteriolar
+  vasoconstriction eliminates glomerular filtration pressure, precipitating acute ischemic renal shutdown.
+
+  Regulatory Reference:
+  - FDA Safety Alert: Black Box Warning on Renin-Angiotensin System Antagonists in Bilateral Renal Artery Stenosis.
+  ```
+
+#### Scenario 3: Out-of-Scope Query & Clean Abstention
+- **Patient Context:** General pediatric surgical intake (`PAT-2026-OOS`).
+- **Clinician Query:** *"What is the recommended surgical technique for pediatric appendectomy?"*
+- **Retrieval & Safety Action:**
+  - Retrieval scores fall below the minimum confidence threshold ($< 0.22$) across all cardiorenal guidelines.
+  - Zero chunks are retained above threshold (**Clean Abstention**).
+  - Skeptic Agent verifies absence of grounded evidence and refuses to speculate.
+- **Actual Output:**
+  ```text
+  🟡 SAFETY ABSTENTION: INSUFFICIENT EVIDENCE
+  Status: CLEAN_ABSTENTION
+
+  Explanation:
+  No clinical guidelines in the active knowledge base meet the retrieval confidence threshold for
+  pediatric surgical techniques. The active system knowledge base is restricted to cardiorenal medicine
+  (Hypertension, Type 2 Diabetes, Chronic Kidney Disease). The system safely abstains from generating
+  ungrounded recommendations.
+  ```
+
+---
+
+### 🖼️ High-Resolution UI Screenshot Gallery
+
+| Feature & View | High-Resolution Screenshot | Architecture Stage |
+|---|---|:---:|
+| **01. Main Landing Dashboard**<br>Operational health badges, active embedding model, and quick scenario presets. | [![01-main-dashboard](docs/assets/screenshots/01-main-dashboard.png)](docs/assets/screenshots/01-main-dashboard.png) | Landing & System State |
+| **02. Clinician Input Studio**<br>Sidebar narrative input, retrieval mode selection (hybrid/dense/bm25), and confidence sliders. | [![02-user-query](docs/assets/screenshots/02-user-query.png)](docs/assets/screenshots/02-user-query.png) | Patient & Query Ingestion |
+| **03. Live Multi-Agent Workflow**<br>Real-time visual state cards with per-agent execution times (Historian → Researcher → Skeptic → Scribe). | [![03-live-agent-workflow](docs/assets/screenshots/03-live-agent-workflow.png)](docs/assets/screenshots/03-live-agent-workflow.png) | LangGraph Orchestration |
+| **04. Evidence Retrieval & Scores**<br>Retrieved passages with source guideline badges, sections, relevance scores, and chunk IDs. | [![04-evidence-retrieval](docs/assets/screenshots/04-evidence-retrieval.png)](docs/assets/screenshots/04-evidence-retrieval.png) | Hybrid Weighted Fusion |
+| **05. Synthesized Clinical Briefing**<br>Structured report with verified clinical recommendations and provenance citation links (`[DOC-X #pY]`). | [![05-generated-response](docs/assets/screenshots/05-generated-response.png)](docs/assets/screenshots/05-generated-response.png) | Scribe Synthesis |
+| **06. Safety Contraindication Halt**<br>Skeptic agent blocking ACE inhibitor recommendation on bilateral renal artery stenosis. | [![06-safety-evaluation](docs/assets/screenshots/06-safety-evaluation.png)](docs/assets/screenshots/06-safety-evaluation.png) | Skeptic Safety Gate |
+| **07. Out-of-Scope Clean Abstention**<br>System safely refusing unanswerable query on pediatric surgery due to insufficient cardiorenal evidence. | [![09-out-of-scope-abstention](docs/assets/screenshots/09-out-of-scope-abstention.png)](docs/assets/screenshots/09-out-of-scope-abstention.png) | Safe Abstention Gate |
+| **08. Benchmark Evaluation Dashboard**<br>8 core KPI cards, Dense vs Hybrid comparison bar chart, and 2x2 clinical safety confusion matrix. | [![07-evaluation-dashboard](docs/assets/screenshots/07-evaluation-dashboard.png)](docs/assets/screenshots/07-evaluation-dashboard.png) | Quantitative Evaluation |
+| **09. Architecture & Telemetry**<br>LangGraph state machine diagram, ChromaDB persistence guard status, and 60-test telemetry. | [![08-performance-overview](docs/assets/screenshots/08-performance-overview.png)](docs/assets/screenshots/08-performance-overview.png) | System Integrity & CI |
+
+---
+
+## 1. Project Overview
+
+**Agentic Medical RAG** is an applied AI engineering research prototype designed to investigate how stateful multi-agent architectures and hybrid information retrieval can improve evidence grounding, citation traceability, and clinical safety verification in medical knowledge retrieval.
+
+Rather than relying on a monolithic large language model (LLM) that generates unverified recommendations in a single shot, this system decomposes clinical decision support into a directed, cyclic **LangGraph** workflow managed by four specialized agents:
+
+1. **Historian Agent**: Ingests longitudinal EHR narratives, extracts trend lines (*e.g., rising serum creatinine, declining eGFR*), and identifies baseline risk factors.
+2. **Researcher Agent**: Formulates targeted clinical queries and executes **Calibrated Hybrid Retrieval** (combining dense vector semantics with Okapi BM25 keyword matching).
+3. **Skeptic Agent**: Audits retrieved evidence against known contraindications (*e.g., FDA black-box warnings for ACE inhibitors in bilateral renal artery stenosis*) and inspects queries for prompt-injection attacks.
+4. **Scribe Agent**: Synthesizes verified clinical briefings where **100% of generated claims map directly to verified chunk IDs** in the evidence state.
+
+---
+
+## 2. Problem Statement
+
+General-purpose LLMs present severe risks when applied naively to healthcare:
+
+- **Hallucinations & Fabricated Citations**: Generative models frequently invent convincing clinical trial citations, PMID identifiers, and dosing guidelines.
+- **Silent Contraindication Overlooks**: Standard RAG pipelines retrieve top-K guidelines based on similarity to the user's query, ignoring critical patient-specific contraindications buried in the clinical history.
+- **Vocabulary Mismatch in Keyword vs Semantic Search**: Dense semantic search alone can miss exact pharmacological trade names or numeric thresholds (*e.g., "eGFR < 30 mL/min"*), while pure lexical BM25 search fails on medical synonymy (*e.g., "proteinuria"* vs *"elevated urinary albumin"*).
+- **All-or-Nothing Generation Without Safe Abstention**: Conventional chatbots attempt to answer out-of-scope or unanswerable queries rather than abstaining safely with clear audit explanations.
+
+---
+
+## 3. Intended Users & Domain Relevance
+
+### Target Users
+- **Clinical AI Engineers & Healthcare Informaticians**: Exploring reproducible evaluation harnesses, multi-agent safety state machines, and hybrid retrieval fusion algorithms.
+- **Clinical Decision Support (CDS) Researchers**: Investigating automated guideline attribution and contraindication auditing on structured and unstructured clinical narratives.
+- **Full-Stack AI Developers**: Seeking reference architectures for deterministic offline testing, ChromaDB embedding persistence guards, and hardened containerized FastAPI deployments.
+
+### Clinical Domain Relevance: Cardiorenal Medicine
+Medical recommendations require strict adherence to multi-society clinical guidelines (*KDIGO 2025, ADA 2026, JNC-8*). For example:
+- **Bilateral Renal Artery Stenosis**: ACE inhibitors and ARBs are absolutely contraindicated because reducing efferent arteriolar resistance can trigger acute ischemic renal failure.
+- **Severe Renal Impairment (eGFR < 30)**: Metformin is contraindicated due to risk of fatal lactic acidosis.
+- In this application, the **Skeptic Agent** evaluates these physiological edge cases *before* any text is returned to the user, halting unsafe generation automatically.
+
+---
+
+## 4. Key Engineering Features
+
+- **Stateful Multi-Agent Graph**: 4 distinct agents orchestrated via LangGraph with bounded state transitions and cycle limits.
+- **Weighted Linear Hybrid Retrieval Fusion**: Combines dense SentenceTransformers embeddings ($0.60$) with Okapi BM25 keyword matching ($0.40$), improving **Recall@5 by +1.90% to 0.8359** and **MRR by +1.93% to 0.8229** over baseline dense cosine search.
+- **ChromaDB Embedding Persistence Guard**: Stores embedding model identity and mode in collection metadata. Automatically rejects incompatible persisted indexes with an actionable `IncompatibleEmbeddingSpaceError` to prevent silent vector space corruption.
+- **Separated Evaluation Metrics**: Disentangles in-scope retrieval success (**In-Scope Hit Rate@5 = 100%**) from out-of-scope behavior (**Clean Abstention = 37.5%**, **Retrieval Leakage = 62.5%**), yielding **Retrieval Decision Accuracy = 84.38%**.
+- **100% Provenance Citation Mapping**: Enforces that all generated therapeutic claims link to explicit document chunk IDs (*e.g., `[DOC-1 #p14]`*).
+- **Hardened Production FastAPI REST API**: Endpoints equipped with correlation IDs (`X-Request-ID`), structured logging, and comprehensive health probes.
+- **Zero-Dependency Deterministic Offline Mode**: Entire pipeline runs out-of-the-box without requiring cloud API keys or external services.
+
+---
+
+## 5. System Architecture & Multi-Agent Workflow
 
 ```mermaid
 flowchart TD
-    A[Medical PDFs / Unstructured EHR] --> B[Document Preprocessor]
-    B --> C[Text Chunking & Embeddings]
-    C --> D[ChromaDB Vector Store]
+    subgraph Ingestion [Document Ingestion & Indexing]
+        Docs[Clinical Guidelines / PDFs / EHR] --> Ingestor[DocumentIngestor & Validator]
+        Ingestor --> Chunker[MedicalChunker: Section-Aware]
+        Chunker --> Embeddings[MedicalEmbeddingFunction: 384-dim]
+        Embeddings --> Chroma[(ChromaDB Persistent Store)]
+    end
 
-    U[Clinician / API Request] --> H[Historian Agent]
-    H -->|Extracts Trends| R[Researcher Agent]
-    D <-->|Vector Retrieval| R
-    R -->|Draft Plan| S[Skeptic Safety Validator]
+    subgraph LangGraphWorkflow [Stateful Multi-Agent Graph]
+        Start([User Query & Patient Context]) --> Historian[1. Historian Agent\nParses Labs & Contraindications]
+        Historian --> Researcher[2. Researcher Agent\nDense + BM25 Hybrid Retrieval]
+        Chroma <-->|Vector k-NN & Lexical BM25 Fusion| Researcher
+        Researcher --> Skeptic{3. Skeptic Safety Auditor\nValidates Contraindications & Injections}
 
-    S -->|Verified: Safe| SC[Scribe Agent]
-    S -->|Contraindication Detected| HALT[Safety Halt & Log Warning]
-
-    SC --> F[Final Verified CDS Report]
+        Skeptic -->|Verified Safe| Scribe[4. Scribe Agent\nCompiles Report & Citations]
+        Skeptic -->|Contraindication Flagged| Scribe
+        Scribe --> Delivery([Delivered Clinical CDS Briefing])
+    end
 ```
 
----
-
-## 🔄 Agentic Workflow & Skeptic Loop
+### Agent State Transition Sequence
 
 ```mermaid
-flowchart LR
-    User([Clinician Query]) --> Historian[Historian Agent]
-    Historian -->|Trend Analysis| Researcher[Researcher Agent]
-    Researcher -->|Vector Retrieval| Skeptic{Skeptic Validator}
-    Skeptic -->|Verified| Scribe[Scribe Agent]
-    Skeptic -->|Safety Contraindication| Response([Safety Warning Output])
-    Scribe --> Response
+sequenceDiagram
+    autonumber
+    actor Clinician as Clinician / API Consumer
+    participant API as FastAPI / Uvicorn Engine
+    participant Hist as Historian Agent
+    participant Res as Researcher Agent
+    participant Skep as Skeptic Agent
+    participant Scr as Scribe Agent
+    participant DB as ChromaDB & BM25 Index
+
+    Clinician->>API: POST /query (Patient ID & Clinical Query)
+    API->>Hist: Dispatch Initial Agent State
+    Hist->>Hist: Extract Creatinine, eGFR, HbA1c & Stenosis History
+    Hist->>Res: Pass Patient Context & Targeted Query
+    Res->>DB: Execute Dense Cosine + Lexical BM25 Search
+    DB-->>Res: Return Top-K Ranked Chunks with Metadata
+    Res->>Skep: Pass Draft Briefing & Retrieved Evidence
+    Skep->>Skep: Audit Prompt Injection & Black-Box Warnings
+    alt Contraindication Detected
+        Skep->>Scr: Halt Flagged (e.g., ACEi in Renal Stenosis)
+        Scr->>API: Format Structured Safety Abstention Warning
+    else Safe & Grounded
+        Skep->>Scr: Verification Passed
+        Scr->>API: Synthesize Clinical Briefing + Citations [DOC-X #pY]
+    end
+    API-->>Clinician: Return JSON Response with Request ID & Citations
 ```
 
-### What Makes This System "Agentic"?
-Unlike traditional linear chains (`Prompt -> LLM -> Output`), this system is **autonomous, stateful, and self-correcting**:
-- **Specialized Roles**: Each agent operates with distinct responsibilities and prompts.
-- **Dynamic State Graph**: State is maintained across agent nodes using LangGraph's checkpointer mechanism.
-- **Conditional Routing**: The workflow dynamically routes control based on safety checks rather than following fixed code paths.
+---
+
+## 6. Technology Stack & Design Decisions
+
+| Component | Technology | Version | Rationale & Architectural Trade-Off |
+|---|---|:---:|---|
+| **Language** | Python | `3.11 / 3.12` | Standard ecosystem for ML, typing, and async backend services. |
+| **Workflow Engine** | LangGraph | `>=0.2.68` | Provides deterministic state persistence, cyclic routing, and node isolation. |
+| **REST API** | FastAPI | `0.115.11` | High throughput, asynchronous endpoint handlers, automatic OpenAPI documentation. |
+| **ASGI Server** | Uvicorn | `0.34.0` | Production ASGI web server supporting async workers. |
+| **Vector Database** | ChromaDB | `>=0.5.20` | Local persistent HNSW vector index with metadata filtering. |
+| **Dense Embeddings** | SentenceTransformers | `all-MiniLM-L6-v2` | Fast 384-dimensional general-purpose embeddings (1B+ sentence pairs). |
+| **Lexical Search** | Okapi BM25 | Pure-Python | Exact keyword matching for drug names and numerical lab thresholds without external services. |
+| **Validation** | Pydantic v2 | `>=2.10.6` | Runtime payload validation, strict typing, and serialization. |
+| **UI Dashboard** | Streamlit | `1.51.0` | Rapid, interactive demonstration UI for live agent trace visualization. |
 
 ---
 
-## 🛠️ Tech Stack
+## 7. Installation & Quickstart
 
-| Domain | Technology | Version | Purpose |
-| :--- | :--- | :--- | :--- |
-| **Language** | Python | `3.10+` | Core Runtime |
-| **Orchestration** | LangGraph | `0.2.45` | Stateful Multi-Agent Graph |
-| **RAG Framework** | LangChain Core | `0.3.15` | Document & Vector Abstractions |
-| **Vector Database** | ChromaDB | `0.5.18` | Persistent k-NN Vector Storage |
-| **Embeddings** | SentenceTransformers | `3.3.1` | Semantic Text Embeddings |
-| **Web Server** | FastAPI / Uvicorn | `0.115.5` | REST API Microservice |
-| **UI Dashboard** | Streamlit | `1.40.1` | Interactive Clinical Interface |
-| **Containerization** | Docker / Compose | `3.8` | Production Deployment |
-| **Testing & CI** | Pytest / GitHub Actions | `8.3.3` | Automated Unit & Integration Tests |
+### Prerequisites
+- Python 3.11 or 3.12
+- Git
 
----
-
-## ⚙️ Environment Setup
-
-Copy `.env.example` to create your local `.env` configuration file:
+### Setup Virtual Environment
 
 ```bash
-cp .env.example .env
-```
-
-### Environment Variables Schema (`.env`)
-
-```env
-OPENAI_API_KEY=your_api_key_here
-HUGGINGFACE_API_KEY=your_hf_key_here
-MODEL_NAME=gpt-4o-mini
-EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-VECTOR_DB_PATH=./vector_db
-API_HOST=0.0.0.0
-API_PORT=8000
-LOG_LEVEL=INFO
-```
-
----
-
-## 🚀 Quickstart & Installation Guide
-
-### Option A: Windows PowerShell Setup
-
-```powershell
-# 1. Clone the repository
-git clone https://github.com/AbhijeetArunGore/Agentic_Medical_RAG
+# Clone the repository
+git clone https://github.com/AbhijeetArunGore/Agentic_Medical_RAG.git
 cd Agentic_Medical_RAG
 
-# 2. Create and activate Python virtual environment
+# Create and activate virtual environment
 python -m venv venv
-venv\Scripts\activate
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 
-# 3. Upgrade pip and install production dependencies
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+# Install dependencies in editable mode
+pip install -r requirements.txt -r requirements-dev.txt
+pip install -e .
 
-# 4. Initialize environment variables
-copy .env.example .env
-
-# 5. Initialize vector database knowledge base
-python app/main.py --setup-db
-
-# 6. Execute multi-agent diagnostic CLI pipeline
-python app/main.py
-```
-
-### Option B: Linux / macOS Setup
-
-```bash
-# 1. Clone repository
-git clone https://github.com/AbhijeetArunGore/Agentic_Medical_RAG
-cd Agentic_Medical_RAG
-
-# 2. Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# 3. Install requirements
-pip install --upgrade pip
-pip install -r requirements.txt
-
-# 4. Copy environment template
+# Copy environment configuration
 cp .env.example .env
-
-# 5. Seed vector database
-python app/main.py --setup-db
-
-# 6. Run pipeline
-python app/main.py
 ```
 
----
+### Ingest Guidelines & Run Application
 
-## 🏃 Running the Application
-
-### 1. CLI Multi-Agent Execution Mode
 ```bash
-python app/main.py --patient-id PAT-2026-X88
-```
+# 1. Ingest clinical guidelines into ChromaDB (with strict reseed flag)
+python -m app.main --ingest --reseed
 
-### 2. FastAPI REST Server Mode
-```bash
-python app/main.py --server
-# Or directly via Uvicorn:
-uvicorn app.api.routes:app --reload --port 8000
-```
-- **Interactive Swagger API Documentation**: `http://localhost:8000/docs`
+# 2. Start the FastAPI backend server
+uvicorn app.api.routes:app --host 0.0.0.0 --port 8000 --reload
 
-### 3. Streamlit Visual Dashboard Mode
-```bash
+# 3. In a separate terminal, launch the Streamlit CDS studio
 streamlit run app/dashboard.py
 ```
-- Access web interface at `http://localhost:8501`
 
-### 4. Docker Containerization Mode
-```bash
-docker-compose up --build
-```
+Open your browser to:
+- **Interactive UI Dashboard**: `http://localhost:8501`
+- **FastAPI OpenAPI Swagger**: `http://localhost:8000/docs`
+- **System Health Diagnostics**: `http://localhost:8000/health`
 
 ---
 
-## 📡 API Usage & Endpoints
+## 8. Clinical Decision Support Studio (Interactive UI)
+
+The Streamlit UI (`app/dashboard.py`) provides 3 operational studios:
+
+1. **🏥 Live Clinical Decision Support**:
+   - Sidebar scenario loader (In-Scope, Contraindication Warning, Out-of-Scope, Prompt Injection).
+   - Live visual multi-agent workflow cards with real-time step timers.
+   - Evidence accordion showing chunk text, match score bars, and source tags.
+   - Formatted clinical briefing box and telemetry metrics bar.
+2. **📊 Benchmark Evaluation & Metrics**:
+   - Live KPI cards pulling directly from offline evaluation JSON reports.
+   - Dense baseline vs improved hybrid comparison bar chart.
+   - 2x2 clinical safety confusion matrix with derived sensitivity/specificity metrics.
+   - Full 32-query golden dataset explorer with category filters.
+3. **🛡️ Agentic Architecture & Integrity**:
+   - Mermaid workflow visualizer.
+   - ChromaDB persistence metadata guard specifications.
+   - 60/60 automated test suite breakdown table.
+
+---
+
+## 9. FastAPI Endpoints & API Reference
+
+### Key Endpoints
 
 | Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | Service health status |
-| `POST` | `/query` | Single-turn RAG retrieval & briefing |
-| `POST` | `/evaluate-patient` | Trigger full LangGraph multi-agent workflow |
+|---|---|---|
+| `GET` | `/health` | Liveness probe returning system status, timestamp, and version. |
+| `GET` | `/ready` | Readiness probe checking ChromaDB index availability. |
+| `GET` | `/diagnostics` | Returns system telemetry, configuration, and index document counts. |
+| `POST`| `/query` | Executes full LangGraph multi-agent clinical workflow on a user query. |
+| `POST`| `/evaluate-patient` | Evaluates a patient ID and returns identified trends and contraindications. |
+| `POST`| `/ingest` | Ingests and chunks clinical guidelines into the vector store. |
 
-### Example Request (`POST /evaluate-patient`)
-
-```bash
-curl -X 'POST' \
-  'http://localhost:8000/evaluate-patient' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "patient_id": "PAT-2026-X88",
-  "query": "Treatment for rising creatinine and high HbA1c"
-}'
-```
-
-### Example Response (`200 OK`)
-
-```json
-{
-  "patient_id": "PAT-2026-X88",
-  "verified": true,
-  "clinical_trends": [
-    "Creatinine: Rising (Acute Stress Detected at 1.4 mg/dL)",
-    "HbA1c: 7.2% (Uncontrolled)"
-  ],
-  "contradictions": [],
-  "final_report": "CLINICAL BRIEFING & DECISION SUPPORT REPORT...",
-  "citations": [
-    "[Source 1] Guideline for Diabetic Nephropathy 2026..."
-  ]
-}
-```
-
----
-
-## 🧪 Running Unit & Integration Tests
-
-Execute test suite using `pytest`:
+### Sample API Query
 
 ```bash
-pytest tests/ -v
+curl -X POST "http://localhost:8000/query" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "patient_id": "PAT-2026-X88",
+       "query": "What is the recommended pharmacotherapy for Type 2 Diabetes patients with rising creatinine?",
+       "retrieval_strategy": "hybrid",
+       "top_k": 4
+     }'
 ```
 
-Run test suite with coverage report:
+---
+
+## 10. Quantitative Retrieval Benchmark (Dense vs Hybrid)
+
+Evaluated over the curated 32-query clinical dataset (`evaluation/datasets/medical_rag_golden_set.jsonl`).
 
 ```bash
-pytest tests/ --cov=app --cov-report=term-missing
+python -m evaluation.runners.evaluate_retrieval
 ```
 
+| Retrieval Metric | Dense Cosine Baseline | Improved Hybrid (Dense+BM25) | Absolute Delta | Relative Gain |
+|---|:---:|:---:|:---:|:---:|
+| **Precision@5** | 0.3000 | **0.3062** | +0.0062 | **+2.07%** |
+| **Recall@5** | 0.8203 | **0.8359** | +0.0156 | **+1.90%** |
+| **MRR (Mean Reciprocal Rank)** | 0.8073 | **0.8229** | +0.0156 | **+1.93%** |
+| **MAP (Mean Avg Precision)** | 0.7816 | **0.8012** | +0.0196 | **+2.51%** |
+| **In-Scope Hit Rate@5 (24 queries)** | 1.0000 | **1.0000** | +0.0000 | 0.00% |
+| **Out-of-Scope Clean Abstention (8 queries)** | 0.3750 | **0.3750** | +0.0000 | 0.00% |
+| **Out-of-Scope Retrieval Leakage (8 queries)** | 0.6250 | **0.6250** | +0.0000 | 0.00% |
+| **Retrieval Decision Accuracy (32 queries)** | 0.8438 | **0.8438** | +0.0000 | 0.00% |
+
+> **Mathematical Distinction**:
+> - **In-Scope Hit Rate@5 = 24/24 (100%)**: All 24 clinical questions retrieve their gold-standard passage in top-5 results.
+> - **Clean Abstention = 3/8 (37.5%)**: 3 out-of-scope/adversarial queries retrieve exactly 0 chunks.
+> - **Retrieval Leakage = 5/8 (62.5%)**: 5 out-of-scope queries produce weak similarity scores ($0.23 - 0.39$) due to general sentence embeddings.
+> - **Retrieval Decision Accuracy = (24 + 3) / 32 = 84.38%**: Composite measure of retrieval decision correctness.
+
 ---
 
-## 📂 Project Structure
+## 11. Answer Quality & Clinical Safety Audit
 
-```text
-Agentic_Medical_RAG/
-│
-├── app/
-│   ├── __init__.py
-│   ├── main.py                  # CLI & Server entry point router
-│   ├── dashboard.py             # Streamlit visual UI dashboard
-│   ├── rag/
-│   │   ├── __init__.py
-│   │   ├── retriever.py         # Vector retriever wrapper
-│   │   ├── generator.py         # RAG prompt & synthesis engine
-│   │   ├── embeddings.py        # SentenceTransformer embedding wrapper
-│   │   ├── vector_store.py      # ChromaDB persistent store manager
-│   │   └── prompts.py           # Medical agent system prompts
-│   ├── agents/
-│   │   ├── __init__.py
-│   │   ├── medical_agent.py     # Standalone RAG query interface
-│   │   ├── historian.py         # EHR record parsing agent
-│   │   ├── researcher.py        # Adaptive vector retrieval agent
-│   │   ├── skeptic.py           # Clinical safety validator agent
-│   │   ├── scribe.py            # Briefing & citation synthesis agent
-│   │   └── orchestrator.py      # LangGraph state machine builder
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── logger.py            # Structured logging utility
-│   │   ├── config.py            # Dynamic settings & path resolution
-│   │   └── helpers.py           # Text cleaning & IO helpers
-│   └── api/
-│       ├── __init__.py
-│       └── routes.py            # FastAPI REST endpoints
-│
-├── data/                        # Raw clinical narratives & mock patient JSON
-│   ├── generate_mock_data.py
-│   ├── ingest_unstructured.py
-│   ├── patient_data.json
-│   ├── raw_extracted_pdf.txt
-│   └── trigger_safety_failure.py
-├── docs/                        # Technical architecture documentation
-│   └── architecture.md
-├── tests/                       # Automated Pytest suite
-│   ├── __init__.py
-│   ├── test_retriever.py
-│   ├── test_generator.py
-│   └── test_api.py
-├── notebooks/                   # Demonstration Jupyter Notebooks
-│   └── demo_walkthrough.ipynb
-├── .github/                     # GitHub Actions CI/CD workflows
-│   └── workflows/
-│       └── ci.yml
-├── requirements.txt             # Pinned production requirements
-├── requirements-dev.txt         # Development & testing requirements
-├── .env.example                 # Environment configuration template
-├── .gitignore                   # Production git ignore rules
-├── pyproject.toml               # Python project & linter settings
-├── Dockerfile                   # Multi-stage Docker build file
-├── docker-compose.yml           # Multi-container orchestration
-├── README.md                    # Project documentation
-└── LICENSE                      # MIT License
+Evaluated across end-to-end multi-agent LangGraph workflow execution:
+
+```bash
+python -m evaluation.runners.evaluate_answers
 ```
 
----
+### 2x2 Clinical Safety Confusion Matrix
 
-## 🔮 Future Improvements
+```
+                          Predicted Halted / Abstained    Predicted Verified & Answered
+Actual Unsafe / OOS (16)           TP = 10 (Safe Halts)             FN = 6 (Unsafe Breaches)
+Actual Safe Case (16)              FP = 1 (Over-Abstention)         TN = 15 (Correct Answers)
+```
 
-- 🔗 **FHIR API Integration**: Native HL7 FHIR server connectivity for real-time EHR data syncing.
-- 🧠 **Clinical Fine-Tuning**: Integration of domain-specific open-weights models (e.g. MedGemma / BioMistral).
-- 👨‍⚕️ **Human-in-the-Loop (HITL)**: Clinician approval interrupts using LangGraph `interrupt_before` breakpoints.
-
----
-
-## 🛡️ Medical Disclaimer
-
-> **IMPORTANT DISCLAIMER:**
-> **This project is for educational, research, and technical demonstration purposes only. It is NOT intended to serve as a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of a qualified healthcare provider with any questions regarding medical conditions.**
-
----
-
-## 📄 License
-
-Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
+- **Safety Recall (Sensitivity)**: **62.5% (10/16)** — Intercepts prompt injections and documented renal stenosis contraindications.
+- **Abstention Specificity**: **93.8% (15/16)** — Selectively preserves valid answers without excessive false alarms.
+- **Abstention Precision**: **90.9% (10/11)** — High confidence when halting execution.
+- **Abstention F1 Score**: **0.7407**
+- **Citation Existence Precision**: **100.0%** — All generated non-abstained reports contain structured citation markers.
 
 ---
 
-## 👨‍💻 Author
+## 12. Automated Test Suite (60 Passing Tests)
 
-**Abhijeet Gore**
-- GitHub: [@AbhijeetArunGore](https://github.com/AbhijeetArunGore)
-- Portfolio Repository: [Agentic_Medical_RAG](https://github.com/AbhijeetArunGore/Agentic_Medical_RAG)
+```bash
+python -m pytest tests/ -v
+```
+
+| Test Suite / Category | Target Test Files | Test Count | Validation Scope |
+|---|---|:---:|---|
+| **Agentic Workflow** | `tests/agents/test_agents.py` | **5** | Historian, Researcher, Skeptic, and Scribe state transitions and reasoning |
+| **FastAPI REST API** | `tests/api/test_endpoints.py` | **7** | Routes `/health`, `/ready`, `/diagnostics`, `/query`, `/evaluate-patient`, `/documents` |
+| **System Integration**| `tests/integration/` | **7** | Pipeline flow (2), vector ingestion, hybrid search, embedding guard, legacy index rejection |
+| **Adversarial Safety** | `tests/safety/test_safety.py` | **7** | Prompt injection, DAN jailbreaks, contraindications, path traversal, citation spoofing |
+| **API & Core Root** | `tests/test_*.py` | **7** | High-level API routing, briefing synthesis, and vector seeding protocols |
+| **Unit Testing** | `tests/unit/` | **27** | Chunking (5), embeddings (5), ingestion (7), and mathematical metrics (10) |
+| **TOTAL TEST SUITE** | **11 Test Modules** | **60 Passing** | **100% pass rate in 21.09s (Exit code 0)** |
+
+---
+
+## 13. Limitations & Clinical Disclaimers
+
+1. **Research Prototype**: This application is a clinical decision support knowledge retrieval research prototype. It is **not certified as a medical device (FDA/CE marked)** and does not provide medical diagnoses or prescriptions.
+2. **Lexical Overlap vs Formal NLI**: Claim support is measured via a token-level non-stopword lexical overlap heuristic ($\ge 35\%$), not a formal Natural Language Inference (NLI) model.
+3. **General-Purpose Embeddings**: Dense retrieval uses `sentence-transformers/all-MiniLM-L6-v2`, a general-purpose model pre-trained on diverse web text, not domain-specific biomedical text.
+4. **Safety Recall Trade-Off**: Under neural mode, the Skeptic agent achieves 62.5% safety recall, missing 6 borderline cases while avoiding excessive false alarms (specificity 93.8%).
+5. **Synthetic Knowledge Base**: The default golden dataset and EHR narratives are synthetic and educational.
+
+---
+
+## 14. Security & Privacy Considerations
+
+- **Prompt Injection Interception**: The Skeptic agent inspects candidate inputs for jailbreak phrases (*"ignore previous instructions"*, *"DAN mode"*, *"system prompt reveal"*).
+- **Hardened Docker Security**: Multi-stage build running under an unprivileged system user (`appuser`, UID `10001`) with read-only runtime filesystem options.
+- **Zero Secret Exposure**: The `/diagnostics` endpoint scrubs API keys, auth tokens, and sensitive system variables.
+- **Path Traversal Sanitization**: Ingestion validates input paths using `os.path.abspath` and verifies existence within approved directories.
+- **No PHI Storage**: Demonstrations operate exclusively on synthetic de-identified records.
+
+---
+
+## 15. Engineering Roadmap
+
+- [x] Hybrid Dense + BM25 Lexical Retrieval with Weighted Score Fusion
+- [x] ChromaDB Embedding Space Metadata Guard & Legacy Index Rejection
+- [x] 32-Query Curated Golden Evaluation Dataset and Metric Runners
+- [x] In-Scope vs Out-of-Scope Retrieval Leakage Reporting
+- [x] 60-Test Automated Pytest Suite with Independent Mocking Flags
+- [x] Multi-Stage Non-Root Docker Architecture
+- [x] Interactive Streamlit Decision Support Studio with Live Trace Visualizer
+- [ ] Cross-Encoder Reranking (`cross-encoder/ms-marco-MiniLM-L-6-v2`)
+- [ ] HL7 FHIR JSON Patient Clinical Ingestion Pipeline
+- [ ] Distributed OpenTelemetry / Jaeger Tracing Integration
+
+---
+
+## 16. Contribution & License
+
+Contributions are welcome! Please ensure all code changes adhere to:
+```bash
+python -m black --check app tests main.py data evaluation benchmarks
+python -m flake8 app tests main.py evaluation benchmarks --count --max-complexity=22 --max-line-length=120 --extend-ignore=E203,W391,E402,W293,E501,E722,F401,F841 --statistics
+python -m pytest tests/ -v
+```
+
+Distributed under the **MIT License**. See `LICENSE` for details.

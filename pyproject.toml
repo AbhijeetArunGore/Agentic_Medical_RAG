@@ -23,6 +23,11 @@ dependencies = [
     "python-dotenv>=1.0.0"
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["data*", "notebooks*", "evaluation*", "tests*", "benchmarks*", "vector_db*"]
+
 [tool.black]
 line-length = 100
 target-version = ['py310', 'py311']
@@ -34,5 +39,16 @@ line_length = 100
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -p no:typeguard"
 pythonpath = ["."]
+markers = [
+    "unit: Pure unit tests with zero external service dependencies",
+    "integration: Multi-component integration tests",
+    "api: FastAPI REST API route tests",
+    "safety: Clinical safety, prompt injection, and contraindication tests",
+    "slow: Tests with longer execution times",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]

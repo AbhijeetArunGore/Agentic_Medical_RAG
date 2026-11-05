@@ -58,13 +58,22 @@ venv.bak/
 
 # Local Environment Variables & Secrets
 .env
+.env.*
+!.env.example
 .env.local
 *.pem
 
 # Vector Database Local Persistence
 vector_db/
-vector_db/*
 chroma.sqlite3
+*.sqlite3
+*.db
+
+# Benchmark and Evaluation reports (keep .gitkeep)
+evaluation/reports/*
+!evaluation/reports/.gitkeep
+benchmarks/reports/*
+!benchmarks/reports/.gitkeep
 
 # IDE & Editor Specific
 .vscode/
