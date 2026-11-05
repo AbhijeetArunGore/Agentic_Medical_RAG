@@ -22,11 +22,11 @@
 
 | Evaluation Dimension | Engineering Implementation & Evidence |
 |---|---|
-| **What problem does this project solve?** | Standard LLMs hallucinate medical citations and overlook critical patient contraindications buried in encounter notes. This system provides verifiable clinical decision support where 100% of claims cite underlying guidelines, and an automated safety agent halts contraindicated recommendations. |
+| **What problem does this project solve?** | Standard LLMs hallucinate medical citations and overlook critical patient contraindications buried in encounter notes. This system provides verifiable clinical decision support where recommendations include structured citations to retrieved guidelines, and an automated safety agent halts contraindicated recommendations. |
 | **Who would use it?** | Clinical AI researchers, hospital informatics engineers, and Applied AI teams prototyping safety-first retrieval pipelines and evidence-grounded agent workflows. |
 | **Why is an agentic RAG architecture appropriate?** | A single LLM call cannot reliably ingest multi-page records, perform hybrid search, cross-reference black-box warnings, and verify citation provenance simultaneously. Decomposing into 4 bounded LangGraph agents enforces deterministic safety gates and auditability. |
 | **What makes this implementation technically interesting?** | Weighted Linear Hybrid Fusion (SentenceTransformers + BM25), strict ChromaDB embedding space persistence validation (rejects mismatched indexes on startup), deterministic offline evaluation harness, and non-root multi-stage Docker deployment. |
-| **What does the evaluation demonstrate?** | **100% In-Scope Hit Rate@5** (24/24), **84.38% Retrieval Decision Accuracy** (27/32), **100% Citation Existence Precision**, **93.75% Abstention Specificity**, and **60/60 passing automated tests**. |
+| **What does the evaluation demonstrate?** | **100% In-Scope Hit Rate@5** (24/24), **84.38% Retrieval Decision Accuracy** (27/32), **100% Citation Existence Precision**, **93.75% Abstention Specificity**, and **61/61 passing automated tests**. |
 | **What are its current limitations?** | Research prototype (not an FDA-cleared device); utilizes general-purpose embeddings (`all-MiniLM-L6-v2`) exhibiting 62.5% out-of-scope retrieval leakage caught by the downstream Skeptic agent. |
 
 ---
@@ -301,7 +301,7 @@ The Streamlit UI (`app/dashboard.py`) provides 3 operational studios:
 3. **🛡️ Agentic Architecture & Integrity**:
    - Mermaid workflow visualizer.
    - ChromaDB persistence metadata guard specifications.
-   - 60/60 automated test suite breakdown table.
+   - 61/61 automated test suite breakdown table.
 
 ---
 
@@ -380,11 +380,12 @@ Actual Safe Case (16)              FP = 1 (Over-Abstention)         TN = 15 (Cor
 - **Abstention Specificity**: **93.8% (15/16)** — Selectively preserves valid answers without excessive false alarms.
 - **Abstention Precision**: **90.9% (10/11)** — High confidence when halting execution.
 - **Abstention F1 Score**: **0.7407**
-- **Citation Existence Precision**: **100.0%** — All generated non-abstained reports contain structured citation markers.
+- **Citation Existence Precision**: **100.0%** — All citations in generated non-abstained reports strictly map to verified chunk IDs in the retrieved set.
+- **Claim Lexical Support Ratio**: **75.0%** — Token-level non-stopword lexical overlap proxy (≥ 35%) verifying cited passages contain asserted clinical terms (distinguished from formal NLI semantic entailment).
 
 ---
 
-## 12. Automated Test Suite (60 Passing Tests)
+## 12. Automated Test Suite (61 Passing Tests)
 
 ```bash
 python -m pytest tests/ -v
@@ -397,8 +398,8 @@ python -m pytest tests/ -v
 | **System Integration**| `tests/integration/` | **7** | Pipeline flow (2), vector ingestion, hybrid search, embedding guard, legacy index rejection |
 | **Adversarial Safety** | `tests/safety/test_safety.py` | **7** | Prompt injection, DAN jailbreaks, contraindications, path traversal, citation spoofing |
 | **API & Core Root** | `tests/test_*.py` | **7** | High-level API routing, briefing synthesis, and vector seeding protocols |
-| **Unit Testing** | `tests/unit/` | **27** | Chunking (5), embeddings (5), ingestion (7), and mathematical metrics (10) |
-| **TOTAL TEST SUITE** | **11 Test Modules** | **60 Passing** | **100% pass rate in 21.09s (Exit code 0)** |
+| **Unit Testing** | `tests/unit/` | **28** | Chunking (5), embeddings (5), ingestion (7), and mathematical metrics (11) |
+| **TOTAL TEST SUITE** | **11 Test Modules** | **61 Passing** | **100% pass rate in 23.68s (Exit code 0)** |
 
 ---
 

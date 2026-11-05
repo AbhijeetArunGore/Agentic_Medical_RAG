@@ -234,7 +234,7 @@ st.markdown(
         <span class='system-badge'>● Collection: clinical_guidelines (Indexed HNSW)</span>
         <span class='system-badge'>● Graph: 4 Specialized Agents (Historian → Researcher → Skeptic → Scribe)</span>
         <span class='system-badge'>● Safety Guard: Active Contraindication Auditor</span>
-        <span class='system-badge'>● Automated Tests: 60/60 Passed</span>
+        <span class='system-badge'>● Automated Tests: 61/61 Passed</span>
     </div>
     """,
     unsafe_allow_html=True,
@@ -880,9 +880,9 @@ with tab_eval:
             | **Out-of-Scope Clean Abstention** (37.5%) | Fraction of off-topic or adversarial queries that retrieve 0 chunks above threshold. | Verifies the retriever's capability to reject irrelevant domains (e.g. pediatric surgery). | General sentence transformers exhibit weak semantic proximity; remaining 62.5% requires Skeptic filtering. |
             | **Out-of-Scope Retrieval Leakage** (62.5%) | Fraction of off-topic queries where at least one weakly related passage passed vector threshold. | Highlights why downstream safety agents (Skeptic) are strictly necessary in production RAG. | Caused by general embedding spaces (`all-MiniLM-L6-v2`); clinical fine-tuning is required to minimize. |
             | **Retrieval Decision Accuracy** (84.38%) | Combined accuracy: $(24 \text{ Hits} + 3 \text{ Clean Abstentions}) / 32 \text{ Total}$. | Single composite measure of retrieval decision correctness across valid and invalid inputs. | Should never be confused with simple Hit Rate; combines hits on in-scope with zero-returns on out-of-scope. |
-            | **MRR (Mean Reciprocal Rank)** (0.8229) | Average inverse rank of first relevant chunk. $1.0$ means first result is always relevant. | Proves top-1 ranking quality is improved by Reciprocal Rank Fusion (+1.93% over dense). | Evaluates rank position, not factual completeness of answer synthesis. |
+            | **MRR (Mean Reciprocal Rank)** (0.8229) | Average inverse rank of first relevant chunk. $1.0$ means first result is always relevant. | Proves top-1 ranking quality is improved by weighted dense+BM25 score fusion (+1.93% over dense). | Evaluates rank position, not factual completeness of answer synthesis. |
             | **Safety Recall** (62.5%) | Proportion of unsafe / contraindicated queries that the system successfully halts. | Primary safety barrier against medical malpractice risks (e.g. ACE inhibitor in renal stenosis). | 6 edge cases slipped past simple keyword rules; requires fine-tuned NLI classifier for 100% recall. |
-            | **Citation Existence Rate** (100.0%) | Percentage of generated briefing reports that contain structured citation tags (`[DOC-X #pY]`). | Guarantees all assertions are linked to underlying document passages. | Citation existence does not measure semantic entailment; lexical overlap metric is 0.5769. |
+            | **Citation Existence Rate** (100.0%) | Percentage of generated citations that strictly map to verified candidate chunk IDs in state. | Guarantees all assertions cite retrieved documents rather than hallucinated sources. | Citation existence does not measure semantic entailment; claim lexical token overlap support is 75.0%. |
             """
         )
 
@@ -964,7 +964,7 @@ with tab_arch:
             """
         )
 
-        st.markdown("#### 🧪 Automated Test Suite Telemetry (60 Tests)")
+        st.markdown("#### 🧪 Automated Test Suite Telemetry (61 Tests)")
         st.markdown(
             """
             | Test Category | Passing Tests | Subsystem Tested |
@@ -974,8 +974,8 @@ with tab_arch:
             | `tests/integration/` | **7 / 7** | End-to-end graph execution, ChromaDB persistence, model migration guard |
             | `tests/safety/` | **7 / 7** | Adversarial prompt injections, contraindication halts, provenance verification |
             | `tests/` root | **7 / 7** | API contract, generator resilience, retriever smoke tests |
-            | `tests/unit/` | **27 / 27** | Semantic chunker (5), Embeddings (5), Ingestion (7), Metric algorithms (10) |
-            | **TOTAL** | **60 / 60** | **100% Passing Test Suite** |
+            | `tests/unit/` | **28 / 28** | Semantic chunker (5), Embeddings (5), Ingestion (7), Metric algorithms (11) |
+            | **TOTAL** | **61 / 61** | **100% Passing Test Suite** |
             """
         )
 

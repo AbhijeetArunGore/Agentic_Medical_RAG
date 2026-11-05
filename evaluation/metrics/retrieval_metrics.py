@@ -51,7 +51,30 @@ def compute_recall_at_k(retrieved_doc_ids: List[str], relevant_doc_ids: Set[str]
 def compute_hit_rate_at_k(
     retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int
 ) -> float:
-    """Calculate Hit Rate@K: 1.0 if at least one relevant document is in top K, else 0.0."""
+    """Calculate conventional Hit Rate@K: 1.0 if at least one relevant document is in top K, else 0.0.
+
+    Note: Conventional Hit Rate requires relevant_doc_ids to be non-empty. For queries with
+    no relevant documents (out of scope), this returns 0.0 because no relevant document exists
+    to be hit. To reward clean abstention on out-of-scope queries, see
+    compute_retrieval_decision_accuracy_at_k.
+    """
+    if not relevant_doc_ids:
+        return 0.0
+
+    top_k = retrieved_doc_ids[:k]
+    for doc in top_k:
+        if doc in relevant_doc_ids:
+            return 1.0
+    return 0.0
+
+
+def compute_retrieval_decision_accuracy_at_k(
+    retrieved_doc_ids: List[str], relevant_doc_ids: Set[str], k: int
+) -> float:
+    """Calculate Retrieval Decision Accuracy@K:
+    - In-scope query (relevant_doc_ids non-empty): 1.0 if >=1 relevant document in top K, else 0.0.
+    - Out-of-scope query (relevant_doc_ids empty): 1.0 if top K is empty (clean abstention), else 0.0.
+    """
     if not relevant_doc_ids:
         return 1.0 if len(retrieved_doc_ids[:k]) == 0 else 0.0
 
@@ -111,7 +134,7 @@ def evaluate_retrieval_batch(
     map_sum = 0.0
     precisions_sum = {k: 0.0 for k in k_values}
     recalls_sum = {k: 0.0 for k in k_values}
-    hit_rates_sum = {k: 0.0 for k in k_values}
+    retrieval_decision_acc_sum = {k: 0.0 for k in k_values}
 
     in_scope_count = sum(1 for item in predictions if item["expected_doc_ids"])
     oos_count = total_queries - in_scope_count
@@ -131,7 +154,8 @@ def evaluate_retrieval_batch(
             precisions_sum[k] += compute_precision_at_k(retrieved, relevant, k)
             recalls_sum[k] += compute_recall_at_k(retrieved, relevant, k)
             hit = compute_hit_rate_at_k(retrieved, relevant, k)
-            hit_rates_sum[k] += hit
+            decision_acc = compute_retrieval_decision_accuracy_at_k(retrieved, relevant, k)
+            retrieval_decision_acc_sum[k] += decision_acc
 
             if relevant:
                 if hit == 1.0:
@@ -153,13 +177,18 @@ def evaluate_retrieval_batch(
     for k in k_values:
         results[f"precision@{k}"] = round(precisions_sum[k] / total_queries, 4)
         results[f"recall@{k}"] = round(recalls_sum[k] / total_queries, 4)
-        results[f"retrieval_decision_accuracy@{k}"] = round(hit_rates_sum[k] / total_queries, 4)
-        results[f"hit_rate@{k}"] = round(
-            hit_rates_sum[k] / total_queries, 4
-        )  # backwards-compatible alias
+        results[f"retrieval_decision_accuracy@{k}"] = round(
+            retrieval_decision_acc_sum[k] / total_queries, 4
+        )
         if in_scope_count > 0:
             results[f"in_scope_hit_rate@{k}"] = round(in_scope_hits[k] / in_scope_count, 4)
+            # Conventional Hit Rate@K is evaluated strictly across in-scope queries with ground truth
+            results[f"hit_rate@{k}"] = round(in_scope_hits[k] / in_scope_count, 4)
+        else:
+            results[f"hit_rate@{k}"] = 0.0
         if oos_count > 0:
+            results[f"oos_clean_abstention@{k}"] = round(oos_clean_abstentions[k] / oos_count, 4)
+            results[f"oos_leakage@{k}"] = round(oos_leakages[k] / oos_count, 4)
             results[f"oos_clean_abstention@{k}"] = round(oos_clean_abstentions[k] / oos_count, 4)
             results[f"oos_leakage@{k}"] = round(oos_leakages[k] / oos_count, 4)
 

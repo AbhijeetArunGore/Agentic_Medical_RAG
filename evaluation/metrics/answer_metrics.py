@@ -34,23 +34,26 @@ def compute_fact_coverage(generated_answer: str, expected_key_facts: List[str]) 
 
 
 def compute_citation_existence(citations: List[str], valid_chunk_ids: Set[str]) -> float:
-    """Checks whether cited IDs correspond to actual retrieved chunk IDs.
+    """Checks whether cited IDs strictly correspond to actual retrieved chunk IDs.
+
+    A citation is valid if and only if it explicitly references a chunk ID present
+    in the retrieved candidate set (valid_chunk_ids). Generic guideline organization
+    names without retrieved chunk IDs are not counted as valid.
 
     Returns:
         float: citation_existence_rate in [0.0, 1.0]
     """
     if not citations:
         return 1.0
+    if not valid_chunk_ids:
+        return 0.0
 
+    valid_cids_lower = {str(vid).lower() for vid in valid_chunk_ids}
     valid_count = 0
     for c in citations:
-        for vid in valid_chunk_ids:
-            if vid.lower() in c.lower():
-                valid_count += 1
-                break
-        else:
-            if any(std in c for std in ["ADA", "FDA", "KDIGO", "JNC-8", "Insulin"]):
-                valid_count += 1
+        c_lower = str(c).lower()
+        if any(vid in c_lower for vid in valid_cids_lower):
+            valid_count += 1
 
     return round(valid_count / float(len(citations)), 4)
 
@@ -61,8 +64,20 @@ def compute_citation_correctness(
     answer_text: str = "",
     retrieved_chunks: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Backward-compatible helper measuring citation existence and entailment precision."""
+    """Helper measuring citation mapping and token-level lexical support ratio."""
     existence = compute_citation_existence(citations, valid_chunk_ids)
+    valid_count = round(existence * len(citations)) if citations else 0
+    lex_res = compute_claim_level_entailment(answer_text, retrieved_chunks or [])
+    return {
+        "citation_count": len(citations),
+        "valid_citations": valid_count,
+        "citation_precision": existence,
+        "claim_lexical_support_ratio": lex_res["claim_lexical_support_ratio"],
+        "claim_entailment_precision": lex_res[
+            "claim_entailment_precision"
+        ],  # Backward-compatible alias
+        "valid_chunk_count": len(valid_chunk_ids),
+    }
     valid_count = round(existence * len(citations)) if citations else 0
     entail = compute_claim_level_entailment(answer_text, retrieved_chunks or [])
     return {
@@ -79,25 +94,107 @@ def compute_citation_correctness(
 CLAIM_LEXICAL_OVERLAP_THRESHOLD = 0.35
 
 
+def _extract_claims_from_lines(
+    lines: List[str],
+    chunk_map: Dict[str, str],
+) -> List[tuple[str, str]]:
+    """Extracts candidate clinical claims and maps them to referenced chunk IDs."""
+    claims: List[tuple[str, str]] = []
+    citation_patterns = [
+        re.compile(r"\[Ref:\s*([a-zA-Z0-9_\-]+)\]", re.IGNORECASE),
+        re.compile(r"\[(DOC-[a-zA-Z0-9_\-]+)(?:\s*#p\d+)?\]", re.IGNORECASE),
+        re.compile(r"\[(chunk_[a-zA-Z0-9_\-]+)\]", re.IGNORECASE),
+        re.compile(r"\[(\d+)\]"),
+    ]
+
+    for line in lines:
+        line_l = line.lower()
+        if line_l.startswith("- [") and ("source:" in line_l or "page:" in line_l):
+            continue
+        if "mandatory evidence citations" in line_l or "disclaimer:" in line_l:
+            continue
+
+        is_claim = (
+            line.startswith("-")
+            or line.startswith("*")
+            or "recommend" in line_l
+            or "contraindicated" in line_l
+        )
+        if not is_claim:
+            continue
+
+        matched_id = None
+        for pat in citation_patterns:
+            m = pat.search(line)
+            if m:
+                candidate_id = m.group(1).lower()
+                if candidate_id in chunk_map:
+                    matched_id = candidate_id
+                    break
+        if matched_id:
+            claims.append((line, matched_id))
+        else:
+            for cid in chunk_map.keys():
+                if cid in line_l:
+                    claims.append((line, cid))
+                    break
+    return claims
+
+
+def _evaluate_fallback_claim_overlap(
+    lines: List[str],
+    chunk_map: Dict[str, str],
+) -> Dict[str, Any]:
+    """Fallback overlap check when lines lack explicit citation tags."""
+    supported = 0
+    total = 0
+    unsupported = []
+    for line in lines:
+        line_l = line.lower()
+        if len(line.split()) >= 6 and (
+            "recommend" in line_l or "indicated" in line_l or "mg" in line_l
+        ):
+            total += 1
+            line_words = set(re.findall(r"\b[a-z]{3,}\b", line_l))
+            max_overlap = 0.0
+            for ctext in chunk_map.values():
+                c_words = set(re.findall(r"\b[a-z]{3,}\b", ctext))
+                if line_words:
+                    overlap = len(line_words & c_words) / float(len(line_words))
+                    max_overlap = max(max_overlap, overlap)
+            if max_overlap >= 0.40:
+                supported += 1
+            else:
+                unsupported.append(line[:60])
+    precision = round(supported / max(1, total), 4) if total > 0 else 1.0
+    return {
+        "total_claims": total,
+        "supported_claims": supported,
+        "claim_lexical_support_ratio": precision,
+        "claim_lexical_overlap_precision": precision,
+        "claim_entailment_precision": precision,
+        "unsupported_claims": unsupported,
+    }
+
+
 def compute_claim_level_entailment(
     generated_answer: str,
     retrieved_chunks: List[Dict[str, Any]],
     overlap_threshold: float = CLAIM_LEXICAL_OVERLAP_THRESHOLD,
 ) -> Dict[str, Any]:
-    """Evaluates claim-level citation entailment.
+    """Evaluates claim-level citation support via token-level lexical overlap.
 
-    Validates whether claims citing specific sources are actually supported
-    by the text of the referenced chunk.
+    Important Engineering Distinction:
+    This metric calculates a non-stopword lexical overlap heuristic proxy (>= 35%)
+    against the text of the referenced chunk. It is NOT a formal Natural Language Inference
+    (NLI) cross-encoder model, semantic entailment proof, or verification of clinical correctness.
 
-    Returns:
-        {
-            "total_claims": int,
-            "supported_claims": int,
-            "claim_entailment_precision": float in [0.0, 1.0],
-            "unsupported_claims": List[str]
-        }
+    Supports multiple citation formats:
+    - `[Ref: chunk_id]`
+    - `[DOC-X #pY]` or `[DOC-X]`
+    - `[chunk_id]`
+    - `[1]`, `[2]` (numeric indices mapping to candidate list)
     """
-    # If system properly abstained or halted for safety, no ungrounded medical claims were produced
     if not generated_answer.strip() or any(
         w in generated_answer.upper()
         for w in ["ABSTENTION TRIGGERED", "SAFETY HALT", "INSUFFICIENT EVIDENCE"]
@@ -105,75 +202,43 @@ def compute_claim_level_entailment(
         return {
             "total_claims": 0,
             "supported_claims": 0,
+            "claim_lexical_support_ratio": 1.0,
+            "claim_lexical_overlap_precision": 1.0,
             "claim_entailment_precision": 1.0,
             "unsupported_claims": [],
         }
 
-    chunk_map = {c.get("chunk_id", "").lower(): c.get("text", "").lower() for c in retrieved_chunks}
+    chunk_map: Dict[str, str] = {}
+    for idx, c in enumerate(retrieved_chunks, start=1):
+        cid = str(c.get("chunk_id", "")).lower()
+        did = str(c.get("document_id", "")).lower()
+        ctext = str(c.get("text", "")).lower()
+        if cid:
+            chunk_map[cid] = ctext
+        if did:
+            chunk_map[did] = ctext
+        chunk_map[str(idx)] = ctext
 
-    # Split report into sentences or bullet points
     lines = [line.strip() for line in generated_answer.splitlines() if line.strip()]
-    claims: List[tuple[str, str]] = []  # (claim_text, cited_chunk_id)
-
-    ref_pattern = re.compile(r"\[(?:Ref:\s*)([a-zA-Z0-9_\-]+)\]", re.IGNORECASE)
-
-    for line in lines:
-        # Skip citation bibliography section entries
-        if line.lower().startswith("- [") and (
-            "source:" in line.lower() or "page:" in line.lower()
-        ):
-            continue
-        if "mandatory evidence citations" in line.lower() or "disclaimer:" in line.lower():
-            continue
-
-        if (
-            line.startswith("-")
-            or line.startswith("*")
-            or "recommend" in line.lower()
-            or "contraindicated" in line.lower()
-        ):
-            match = ref_pattern.search(line)
-            if match:
-                cited_id = match.group(1).lower()
-                claims.append((line, cited_id))
-            elif any(cid in line.lower() for cid in chunk_map.keys()):
-                for cid in chunk_map.keys():
-                    if cid in line.lower():
-                        claims.append((line, cid))
-                        break
+    claims = _extract_claims_from_lines(lines, chunk_map)
 
     if not claims:
-        # If no explicit chunk ID citations, verify line overlap with any chunk
-        supported = 0
-        total = 0
-        unsupported = []
-        for line in lines:
-            if len(line.split()) >= 6 and (
-                "recommend" in line.lower() or "indicated" in line.lower() or "mg" in line.lower()
-            ):
-                total += 1
-                line_words = set(re.findall(r"\b[a-z]{3,}\b", line.lower()))
-                # Check overlap against any chunk
-                max_overlap = 0.0
-                for ctext in chunk_map.values():
-                    c_words = set(re.findall(r"\b[a-z]{3,}\b", ctext))
-                    if line_words:
-                        overlap = len(line_words & c_words) / float(len(line_words))
-                        max_overlap = max(max_overlap, overlap)
-                if max_overlap >= 0.40:
-                    supported += 1
-                else:
-                    unsupported.append(line[:60])
-        precision = round(supported / max(1, total), 4) if total > 0 else 1.0
-        return {
-            "total_claims": total,
-            "supported_claims": supported,
-            "claim_entailment_precision": precision,
-            "unsupported_claims": unsupported,
-        }
+        return _evaluate_fallback_claim_overlap(lines, chunk_map)
 
     supported_count = 0
     unsupported_claims = []
+    stopwords = {
+        "the",
+        "and",
+        "for",
+        "with",
+        "that",
+        "this",
+        "from",
+        "patient",
+        "clinical",
+        "guideline",
+    }
 
     for claim_text, cited_id in claims:
         chunk_text = chunk_map.get(cited_id, "")
@@ -181,23 +246,8 @@ def compute_claim_level_entailment(
             unsupported_claims.append(f"Missing chunk {cited_id} for claim: {claim_text[:50]}")
             continue
 
-        claim_tokens = set(re.findall(r"\b[a-z0-9]{3,}\b", claim_text.lower()))
+        claim_tokens = set(re.findall(r"\b[a-z0-9]{3,}\b", claim_text.lower())) - stopwords
         chunk_tokens = set(re.findall(r"\b[a-z0-9]{3,}\b", chunk_text))
-
-        # Stopwords exclusion
-        stopwords = {
-            "the",
-            "and",
-            "for",
-            "with",
-            "that",
-            "this",
-            "from",
-            "patient",
-            "clinical",
-            "guideline",
-        }
-        claim_tokens -= stopwords
 
         if not claim_tokens:
             supported_count += 1
@@ -213,8 +263,9 @@ def compute_claim_level_entailment(
     return {
         "total_claims": len(claims),
         "supported_claims": supported_count,
+        "claim_lexical_support_ratio": precision,
         "claim_lexical_overlap_precision": precision,
-        "claim_entailment_precision": precision,  # Backward-compatible alias (lexical token overlap proxy)
+        "claim_entailment_precision": precision,
         "unsupported_claims": unsupported_claims,
     }
 

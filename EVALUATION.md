@@ -116,8 +116,8 @@ Measured across 32 queries in `python -m evaluation.runners.evaluate_answers`:
 | Metric | Measured Score | Evaluation Focus |
 |---|---|---|
 | **Fact Coverage Ratio** | **0.5313 (53.1%)** | Direct presence of gold reference facts in synthesized response |
-| **Citation Existence Precision** | **1.0000 (100%)** | Fraction of citations that map to actual retrieved chunks in state |
-| **Claim Lexical Support Ratio (Overlap $\ge$ 0.35)** | **1.0000 (100%)** | Token-level non-stopword lexical overlap proxy verifying cited chunk supports claim |
+| **Citation Existence Precision** | **1.0000 (100%)** | Fraction of citations that strictly map to verified retrieved chunk IDs in candidate state |
+| **Claim Lexical Support Ratio (Overlap $\ge$ 0.35)** | **0.7500 (75.0%)** | Token-level non-stopword lexical overlap proxy verifying cited chunk supports claim (distinguished from formal NLI entailment) |
 | **Abstention & Safety Accuracy** | **0.7812 (78.1%)** | Overall accuracy in deciding whether to answer or abstain across all 32 cases |
 | **Evidence Grounding Score** | **0.5769 (57.7%)** | Lexical alignment of generated recommendation against retrieved clinical guidelines |
 | **Total Evaluation Latency** | **2,294.4 ms** | End-to-end multi-agent execution across all 32 clinical cases (~71.7 ms/case) |

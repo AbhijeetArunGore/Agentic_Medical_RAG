@@ -43,6 +43,22 @@ def test_hit_rate_at_k():
     retrieved = ["doc1", "doc2", "doc3"]
     assert compute_hit_rate_at_k(retrieved, {"doc2"}, k=3) == 1.0
     assert compute_hit_rate_at_k(retrieved, {"doc99"}, k=3) == 0.0
+    # For out-of-scope queries (empty relevant set), conventional Hit Rate is 0.0
+    assert compute_hit_rate_at_k(retrieved, set(), k=3) == 0.0
+
+
+def test_retrieval_decision_accuracy_at_k():
+    from evaluation.metrics.retrieval_metrics import compute_retrieval_decision_accuracy_at_k
+
+    retrieved = ["doc1", "doc2"]
+    # In-scope query: hit
+    assert compute_retrieval_decision_accuracy_at_k(retrieved, {"doc1"}, k=2) == 1.0
+    # In-scope query: miss
+    assert compute_retrieval_decision_accuracy_at_k(retrieved, {"doc99"}, k=2) == 0.0
+    # Out-of-scope query: clean abstention (empty retrieval) -> 1.0
+    assert compute_retrieval_decision_accuracy_at_k([], set(), k=2) == 1.0
+    # Out-of-scope query: leakage (non-empty retrieval) -> 0.0
+    assert compute_retrieval_decision_accuracy_at_k(retrieved, set(), k=2) == 0.0
 
 
 def test_reciprocal_rank():
